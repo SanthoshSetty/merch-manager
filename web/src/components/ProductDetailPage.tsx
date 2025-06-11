@@ -327,26 +327,97 @@ export default function ProductDetailPage() {
             <ProductForm 
               productId={product.name}
               initialData={{
+                // Basic Information
                 title: product.attributes.title || '',
                 description: product.attributes.description || '',
-                price: product.attributes.price?.amountMicros 
-                  ? (parseInt(product.attributes.price.amountMicros) / 1000000).toString()
-                  : '',
-                availability: product.attributes.availability || 'in_stock',
-                condition: product.attributes.condition || 'new',
                 brand: product.attributes.brand || '',
+                condition: product.attributes.condition || 'new',
                 gtin: Array.isArray(product.attributes.gtin) 
                   ? product.attributes.gtin[0] 
                   : product.attributes.gtin || '',
                 mpn: product.attributes.mpn || '',
-                googleProductCategory: product.attributes.googleProductCategory || '',
+                itemGroupId: product.attributes.itemGroupId || '',
+                identifierExists: product.attributes.identifierExists !== false,
+                
+                // Images
                 imageLink: product.attributes.imageLink || '',
+                additionalImageLinks: product.attributes.additionalImageLinks || [],
+                lifestyleImageLinks: product.attributes.lifestyleImageLinks || [],
+                virtualModelLink: product.attributes.virtualModelLink || '',
+                
+                // Pricing
+                price: product.attributes.price?.amountMicros 
+                  ? (parseInt(product.attributes.price.amountMicros) / 1000000).toString()
+                  : '',
                 salePrice: product.attributes.salePrice?.amountMicros 
                   ? (parseInt(product.attributes.salePrice.amountMicros) / 1000000).toString()
                   : '',
                 costOfGoodsSold: product.attributes.costOfGoodsSold?.amountMicros 
                   ? (parseInt(product.attributes.costOfGoodsSold.amountMicros) / 1000000).toString()
                   : '',
+                autoPricingMinPrice: product.attributes.autoPricingMinPrice?.amountMicros 
+                  ? (parseInt(product.attributes.autoPricingMinPrice.amountMicros) / 1000000).toString()
+                  : '',
+                unitPricingMeasure: product.attributes.unitPricingMeasure?.value?.toString() || '',
+                unitPricingBaseMeasure: product.attributes.unitPricingBaseMeasure?.value?.toString() || '',
+                
+                // Inventory
+                availability: product.attributes.availability || 'in_stock',
+                sellOnGoogleQuantity: product.attributes.sellOnGoogleQuantity || '',
+                minHandlingTime: product.attributes.minHandlingTime || '',
+                maxHandlingTime: product.attributes.maxHandlingTime || '',
+                availabilityDate: product.attributes.availabilityDate || '',
+                expirationDate: product.attributes.expirationDate || '',
+                
+                // Categories
+                googleProductCategory: product.attributes.googleProductCategory || '',
+                productTypes: product.attributes.productTypes || [],
+                ageGroup: product.attributes.ageGroup || '',
+                gender: product.attributes.gender || '',
+                adult: product.attributes.adult || false,
+                
+                // Physical Attributes
+                color: product.attributes.color || '',
+                material: product.attributes.material || '',
+                pattern: product.attributes.pattern || '',
+                size: product.attributes.size || '',
+                sizeSystem: product.attributes.sizeSystem || '',
+                sizeTypes: product.attributes.sizeTypes || [],
+                productLength: product.attributes.productLength?.value?.toString() || '',
+                productWidth: product.attributes.productWidth?.value?.toString() || '',
+                productHeight: product.attributes.productHeight?.value?.toString() || '',
+                productWeight: product.attributes.productWeight?.value?.toString() || '',
+                multipack: product.attributes.multipack || '',
+                
+                // Shipping
+                shippingLabel: product.attributes.shippingLabel || '',
+                transitTimeLabel: product.attributes.transitTimeLabel || '',
+                shippingLength: product.attributes.shippingLength?.value?.toString() || '',
+                shippingWidth: product.attributes.shippingWidth?.value?.toString() || '',
+                shippingHeight: product.attributes.shippingHeight?.value?.toString() || '',
+                shippingWeight: product.attributes.shippingWeight?.value?.toString() || '',
+                pickupMethod: product.attributes.pickupMethod || '',
+                pickupSla: product.attributes.pickupSla || '',
+                
+                // SEO & Marketing
+                link: product.attributes.link || '',
+                mobileLink: product.attributes.mobileLink || '',
+                canonicalLink: product.attributes.canonicalLink || '',
+                productHighlights: product.attributes.productHighlights || [],
+                customLabel0: product.attributes.customLabel0 || '',
+                customLabel1: product.attributes.customLabel1 || '',
+                customLabel2: product.attributes.customLabel2 || '',
+                customLabel3: product.attributes.customLabel3 || '',
+                customLabel4: product.attributes.customLabel4 || '',
+                
+                // Advanced
+                externalSellerId: product.attributes.externalSellerId || '',
+                displayAdsId: product.attributes.displayAdsId || '',
+                adsGrouping: product.attributes.adsGrouping || '',
+                adsLabels: product.attributes.adsLabels || [],
+                structuredTitle: product.attributes.structuredTitle?.content || '',
+                digitalSourceType: product.attributes.structuredTitle?.digitalSourceType || '',
+                pause: product.attributes.pause || 'false',
               }}
               onUpdate={handleProductUpdate}
             />

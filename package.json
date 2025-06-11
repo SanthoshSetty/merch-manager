@@ -25,7 +25,8 @@
     "google-auth-library": "^10.0.0",
     "googleapis": "^150.0.1",
     "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",
