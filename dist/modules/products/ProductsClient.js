@@ -8,22 +8,26 @@ const axios_1 = __importDefault(require("axios"));
 class ProductsClient {
     constructor(auth) {
         this.auth = auth;
-        this.baseUrl = `${process.env.MERCHANT_API_BASE_URL}/${process.env.MERCHANT_API_VERSION}`;
+        this.baseUrl = 'https://merchantapi.googleapis.com/products/v1beta';
         this.merchantId = process.env.GOOGLE_MERCHANT_ID;
     }
     async updateProductFields(productId, updates, updateMask) {
         const token = await this.auth.getAccessToken();
-        // Transform form data to API format
-        const apiPayload = {
-            attributes: updates
+        // Use ProductInputs API for updates - this creates a new product input
+        // The product input will be processed and update the actual product
+        const productInput = {
+            product: {
+                name: `accounts/${this.merchantId}/products/${productId}`,
+                attributes: updates
+            },
+            channel: "ONLINE",
+            contentLanguage: "en",
+            targetCountry: "US"
         };
-        const response = await axios_1.default.patch(`${this.baseUrl}/accounts/${this.merchantId}/products/${productId}`, apiPayload, {
+        const response = await axios_1.default.post(`${this.baseUrl}/accounts/${this.merchantId}/productInputs`, productInput, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
-            },
-            params: {
-                updateMask
             }
         });
         return response.data;
@@ -47,6 +51,45 @@ class ProductsClient {
                 'Authorization': `Bearer ${token}`,
             },
             params
+        });
+        return response.data;
+    }
+    async getAccount() {
+        const token = await this.auth.getAccessToken();
+        // Use the accounts API to get account information
+        const response = await axios_1.default.get(`https://merchantapi.googleapis.com/accounts/v1beta/accounts/${this.merchantId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            }
+        });
+        return response.data;
+    }
+    // New method to create a product input
+    async createProductInput(productData) {
+        const token = await this.auth.getAccessToken();
+        const productInput = {
+            product: {
+                attributes: productData
+            },
+            channel: "ONLINE",
+            contentLanguage: "en",
+            targetCountry: "US"
+        };
+        const response = await axios_1.default.post(`${this.baseUrl}/accounts/${this.merchantId}/productInputs`, productInput, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            }
+        });
+        return response.data;
+    }
+    // Delete a product input
+    async deleteProductInput(productInputId) {
+        const token = await this.auth.getAccessToken();
+        const response = await axios_1.default.delete(`${this.baseUrl}/accounts/${this.merchantId}/productInputs/${productInputId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            }
         });
         return response.data;
     }

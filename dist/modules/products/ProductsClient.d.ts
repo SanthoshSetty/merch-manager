@@ -7,5 +7,8 @@ export declare class ProductsClient {
     updateProductFields(productId: string, updates: any, updateMask: string): Promise<any>;
     getProduct(productId: string): Promise<any>;
     listProducts(pageSize?: number, pageToken?: string): Promise<any>;
+    getAccount(): Promise<any>;
+    createProductInput(productData: any): Promise<any>;
+    deleteProductInput(productInputId: string): Promise<any>;
 }
 //# sourceMappingURL=ProductsClient.d.ts.map

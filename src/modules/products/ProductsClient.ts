@@ -6,28 +6,32 @@ export class ProductsClient {
   private merchantId: string;
 
   constructor(private auth: MerchantAuth) {
-    this.baseUrl = `${process.env.MERCHANT_API_BASE_URL}/${process.env.MERCHANT_API_VERSION}`;
+    this.baseUrl = 'https://merchantapi.googleapis.com/products/v1beta';
     this.merchantId = process.env.GOOGLE_MERCHANT_ID!;
   }
 
   async updateProductFields(productId: string, updates: any, updateMask: string) {
     const token = await this.auth.getAccessToken();
     
-    // Transform form data to API format
-    const apiPayload = {
-      attributes: updates
+    // Use ProductInputs API for updates - this creates a new product input
+    // The product input will be processed and update the actual product
+    const productInput = {
+      product: {
+        name: `accounts/${this.merchantId}/products/${productId}`,
+        attributes: updates
+      },
+      channel: "ONLINE",
+      contentLanguage: "en",
+      targetCountry: "US"
     };
 
-    const response = await axios.patch(
-      `https://merchantapi.googleapis.com/products/v1beta/accounts/${this.merchantId}/products/${productId}`,
-      apiPayload,
+    const response = await axios.post(
+      `${this.baseUrl}/accounts/${this.merchantId}/productInputs`,
+      productInput,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-        },
-        params: {
-          updateMask
         }
       }
     );
@@ -38,8 +42,14 @@ export class ProductsClient {
   async getProduct(productId: string) {
     const token = await this.auth.getAccessToken();
     
+    // Extract the actual product ID from full product name if needed
+    // Format: accounts/{merchantId}/products/{productId}
+    const actualProductId = productId.startsWith('accounts/') 
+      ? productId.split('/products/')[1] 
+      : productId;
+    
     const response = await axios.get(
-      `https://merchantapi.googleapis.com/products/v1beta/accounts/${this.merchantId}/products/${productId}`,
+      `${this.baseUrl}/accounts/${this.merchantId}/products/${actualProductId}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -48,7 +58,7 @@ export class ProductsClient {
     );
 
     return response.data;
-  }
+    }
 
   async listProducts(pageSize: number = 25, pageToken?: string) {
     const token = await this.auth.getAccessToken();
@@ -57,7 +67,7 @@ export class ProductsClient {
     if (pageToken) params.pageToken = pageToken;
 
     const response = await axios.get(
-      `https://merchantapi.googleapis.com/products/v1beta/accounts/${this.merchantId}/products`,
+      `${this.baseUrl}/accounts/${this.merchantId}/products`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -72,8 +82,52 @@ export class ProductsClient {
   async getAccount() {
     const token = await this.auth.getAccessToken();
     
+    // Use the accounts API to get account information
     const response = await axios.get(
       `https://merchantapi.googleapis.com/accounts/v1beta/accounts/${this.merchantId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      }
+    );
+
+    return response.data;
+  }
+
+  // New method to create a product input
+  async createProductInput(productData: any) {
+    const token = await this.auth.getAccessToken();
+    
+    const productInput = {
+      product: {
+        attributes: productData
+      },
+      channel: "ONLINE",
+      contentLanguage: "en",
+      targetCountry: "US"
+    };
+
+    const response = await axios.post(
+      `${this.baseUrl}/accounts/${this.merchantId}/productInputs`,
+      productInput,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+
+    return response.data;
+  }
+
+  // Delete a product input
+  async deleteProductInput(productInputId: string) {
+    const token = await this.auth.getAccessToken();
+    
+    const response = await axios.delete(
+      `${this.baseUrl}/accounts/${this.merchantId}/productInputs/${productInputId}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,

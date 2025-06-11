@@ -14,12 +14,21 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(helmet());
 app.use(compression());
-app.use(cors({ origin: process.env.CORS_ORIGIN }));
+app.use(cors({ 
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : [])
+  ]
+}));
 app.use(express.json());
 
 // Initialize clients
 const authManager = new MerchantAuth();
 const productsClient = new ProductsClient(authManager);
+
+// Demo mode flag
+const DEMO_MODE = process.env.DEMO_MODE === 'true' || !process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 // Field update endpoints
 app.patch('/api/products/:productId/fields', async (req, res) => {
@@ -111,6 +120,100 @@ app.get('/api/products', async (req, res) => {
       success: false,
       error: error.message,
       code: error.code || 'LIST_PRODUCTS_ERROR'
+    });
+  }
+});
+
+// Create product input endpoint (for new products)
+app.post('/api/products', async (req, res) => {
+  try {
+    const { productData } = req.body;
+    
+    // Validate product data
+    const validatedData = validateFieldUpdates(productData);
+    
+    const result = await productsClient.createProductInput(validatedData);
+    
+    res.json({
+      success: true,
+      data: result,
+      message: 'Product input created successfully'
+    });
+  } catch (error: any) {
+    console.error('Create product input error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      code: error.code || 'CREATE_PRODUCT_ERROR'
+    });
+  }
+});
+
+// Delete product input endpoint
+app.delete('/api/products/inputs/:productInputId', async (req, res) => {
+  try {
+    const { productInputId } = req.params;
+    
+    const result = await productsClient.deleteProductInput(productInputId);
+    
+    res.json({
+      success: true,
+      data: result,
+      message: 'Product input deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Delete product input error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      code: error.code || 'DELETE_PRODUCT_ERROR'
+    });
+  }
+});
+
+// Health check and authentication test endpoint
+app.get('/api/health', async (req, res) => {
+  try {
+    console.log('🔍 Health check requested...');
+    
+    // Basic server health
+    const health: any = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      server: 'running',
+      merchantId: process.env.GOOGLE_MERCHANT_ID,
+      hasCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      credentialsPath: process.env.GOOGLE_APPLICATION_CREDENTIALS
+    };
+
+    // Test authentication
+    try {
+      console.log('Testing authentication...');
+      const token = await authManager.getAccessToken();
+      health.authentication = {
+        status: 'success',
+        tokenLength: token ? token.length : 0,
+        tokenPresent: !!token
+      };
+      console.log('✅ Authentication successful');
+    } catch (authError: any) {
+      console.log('❌ Authentication failed:', authError.message);
+      health.authentication = {
+        status: 'failed',
+        error: authError.message,
+        errorCode: authError.code
+      };
+    }
+
+    res.json({
+      success: true,
+      data: health
+    });
+  } catch (error: any) {
+    console.error('Health check error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });

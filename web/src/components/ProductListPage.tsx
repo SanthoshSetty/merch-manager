@@ -309,7 +309,7 @@ export default function ProductListPage() {
                       <Button
                         variant="contained"
                         startIcon={<EditIcon />}
-                        onClick={() => handleProductEdit(product.offerId)}
+                        onClick={() => handleProductEdit(product.name)}
                         sx={{ minWidth: 120 }}
                       >
                         Edit
