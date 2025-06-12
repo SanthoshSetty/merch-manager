@@ -12,6 +12,8 @@ import {
   Sync as SyncIcon,
 } from '@mui/icons-material';
 import ProductFieldGroups from './ProductFieldGroups';
+import { useCustomFields } from '../hooks/useCustomFields';
+import { type CustomField } from './CustomFieldBuilder';
 
 interface ProductFormProps {
   productId: string;
@@ -94,6 +96,31 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
   // const [lastSavedData, setLastSavedData] = useState<any>(null); // Track last successfully saved state
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false); // Track if user has unsaved changes
 
+  // Custom fields integration
+  const { customFields, customFieldValues } = useCustomFields(productId);
+
+  // Function to map custom fields to Google Merchant API custom attributes
+  const mapCustomFieldsToGoogleAttributes = () => {
+    const googleCustomAttributes: Record<string, any> = {};
+    
+    // Google Merchant API supports 5 custom attributes (custom_attribute_0 to custom_attribute_4)
+    const mappedFields: CustomField[] = customFields
+      .filter(field => field.googleMerchantMapping && customFieldValues[field.id] !== undefined && customFieldValues[field.id] !== '')
+      .slice(0, 5); // Limit to 5 as per Google's API limit
+    
+    mappedFields.forEach((fieldDef, index) => {
+      const value = customFieldValues[fieldDef.id];
+      if (value !== undefined && value !== '') {
+        googleCustomAttributes[`custom_attribute_${index}`] = {
+          name: fieldDef.googleMerchantMapping,
+          value: String(value)
+        };
+      }
+    });
+    
+    return googleCustomAttributes;
+  };
+
   const handleFieldChange = (field: string, value: any) => {
     setProductData((prev: any) => ({
       ...prev,
@@ -135,6 +162,8 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
         price: transformPrice(productData.price),
         salePrice: transformPrice(productData.salePrice),
         costOfGoodsSold: transformPrice(productData.costOfGoodsSold),
+        // Add Google Merchant custom attributes from custom fields
+        ...mapCustomFieldsToGoogleAttributes(),
       };
 
       // Clean up problematic data before sending to API
@@ -159,10 +188,21 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
       });
 
       // Call bulk update API
+      const customAttributes = mapCustomFieldsToGoogleAttributes();
+      const hasCustomFields = Object.keys(customAttributes).length > 0;
+      
       console.log('🔍 Saving product data...');
       console.log('📊 Original data keys:', Object.keys(transformedData).length);
       console.log('📊 Cleaned data keys:', Object.keys(cleanedData).length);
       console.log('📊 Cleaned data:', cleanedData);
+      
+      if (hasCustomFields) {
+        console.log('🎯 Custom fields mapped to Google attributes:', customAttributes);
+        console.log('📝 Custom fields being synced:', Object.keys(customAttributes).length);
+      } else {
+        console.log('ℹ️ No custom fields with Google Merchant mapping found');
+      }
+      
       console.log('📋 Update mask:', Object.keys(cleanedData).map(key => `attributes.${key}`).join(','));
       
       const requestBody = {
@@ -196,7 +236,11 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
       }
 
       if (result.success) {
+        const customAttributesCount = Object.keys(customAttributes).length;
         console.log('✅ Bulk save successful!');
+        if (customAttributesCount > 0) {
+          console.log(`🎯 ${customAttributesCount} custom fields synced to Google Merchant custom attributes!`);
+        }
         setSaveStatus('success');
         
         // Track the saved state
@@ -312,6 +356,7 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
         <ProductFieldGroups 
           productData={productData}
           onFieldChange={handleFieldChange}
+          productId={productId}
         />
 
         {/* Status Information */}
