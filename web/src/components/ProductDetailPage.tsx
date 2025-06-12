@@ -97,8 +97,16 @@ export default function ProductDetailPage() {
   }, [productId]);
 
   const handleProductUpdate = () => {
-    // Reload product data after successful update
-    loadProduct();
+    // Don't immediately reload product data after save
+    // Google Merchant Center API takes 5-10 minutes to propagate changes
+    // This prevents user edits from being overwritten by stale server data
+    console.log('💾 Product update completed - preserving local state until API propagates');
+    
+    // Optional: Add a delayed refresh after 5 minutes to sync with final API state
+    // setTimeout(() => {
+    //   console.log('🔄 Refreshing product data after API propagation delay');
+    //   loadProduct();
+    // }, 5 * 60 * 1000); // 5 minutes
   };
 
   const getStatusColor = (severity: string) => {

@@ -20,6 +20,7 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ productId, initialData, onUpdate }: ProductFormProps) {
+  // State management for preserving user changes vs server data
   const [productData, setProductData] = useState(initialData || {
     title: '',
     description: '',
@@ -90,6 +91,8 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'success' | 'error' | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // const [lastSavedData, setLastSavedData] = useState<any>(null); // Track last successfully saved state
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false); // Track if user has unsaved changes
 
   const handleFieldChange = (field: string, value: any) => {
     setProductData((prev: any) => ({
@@ -97,91 +100,17 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
       [field]: value
     }));
     
-    // Auto-save field changes
-    handleSaveField(field, value);
-  };
-
-  const handleSaveField = async (field: string, value: any) => {
-    try {
-      console.log(`🔍 Field ${field} updating to:`, value);
-      
-      // Validate the field value before sending
-      let processedValue = value;
-      
-      // Special handling for price fields
-      if (['price', 'salePrice', 'costOfGoodsSold'].includes(field)) {
-        if (typeof value === 'string' && value.trim() !== '') {
-          const numValue = parseFloat(value);
-          if (isNaN(numValue) || numValue < 0) {
-            console.warn(`⚠️ Invalid ${field} value: ${value}, skipping update`);
-            return;
-          }
-          processedValue = {
-            amountMicros: Math.round(numValue * 1000000).toString(),
-            currencyCode: 'USD'
-          };
-        } else if (value === '' || value === null || value === undefined) {
-          // Skip empty price fields
-          console.log(`📋 Skipping empty ${field} field`);
-          return;
-        }
-      }
-      
-      const requestBody = {
-        updates: { [field]: processedValue },
-        updateMask: `attributes.${field}`
-      };
-      
-      console.log(`📤 Sending field update:`, requestBody);
-      
-      // Call field update API
-      const response = await fetch(`http://localhost:3001/api/products/${encodeURIComponent(productId)}/fields`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const result = await response.json();
-      
-      console.log(`📡 Field ${field} API response:`, {
-        status: response.status,
-        ok: response.ok,
-        result: result
-      });
-
-      if (!response.ok) {
-        console.error(`❌ HTTP Error for field ${field}:`, {
-          status: response.status,
-          statusText: response.statusText,
-          responseBody: result
-        });
-        throw new Error(`Update failed: ${result.error || response.statusText || `HTTP ${response.status}`}`);
-      }
-
-      if (result.success) {
-        console.log(`✅ Field ${field} updated successfully!`);
-        if (result.mode === 'demo') {
-          console.log('🎭 Demo Mode: Field update simulated');
-        }
-        // Call onUpdate callback if provided
-        if (onUpdate) {
-          onUpdate();
-        }
-      } else {
-        console.error(`❌ API returned failure for field ${field}:`, result);
-        throw new Error(result.error || 'API returned failure status');
-      }
-    } catch (error: any) {
-      console.error(`💥 Error updating field ${field}:`, {
-        message: error.message,
-        stack: error.stack,
-        fieldValue: value
-      });
-      // Show user-friendly error message
-      console.warn(`Field ${field} update failed. If you see API errors, consider enabling Demo Mode for testing.`);
+    // Mark as having unsaved changes
+    setHasUnsavedChanges(true);
+    
+    // Clear any existing save status when user makes changes
+    if (saveStatus) {
+      setSaveStatus(null);
+      setSaveError(null);
     }
+    
+    // Remove auto-save - only update local state
+    // User will save manually using the Save button
   };
 
   const handleSaveAll = async () => {
@@ -269,6 +198,12 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
       if (result.success) {
         console.log('✅ Bulk save successful!');
         setSaveStatus('success');
+        
+        // Track the saved state
+        setHasUnsavedChanges(false);
+        
+        // Notify parent component but don't refetch immediately
+        // Google Merchant Center API takes time to propagate changes
         if (onUpdate) {
           onUpdate();
         }
@@ -320,6 +255,15 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
             Product ID: {productId}
           </Typography>
           
+          {/* Unsaved Changes Indicator */}
+          {hasUnsavedChanges && (
+            <Alert severity="warning" sx={{ mt: 1 }}>
+              <Typography variant="body2">
+                You have unsaved changes. Click "Save Changes" to persist your edits.
+              </Typography>
+            </Alert>
+          )}
+          
           {/* Save Status */}
           {saveStatus === 'success' && (
             <Alert severity="success" sx={{ mt: 2 }}>
@@ -351,8 +295,9 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
             startIcon={<SaveIcon />}
             onClick={handleSaveAll}
             disabled={saving}
+            color={hasUnsavedChanges ? "primary" : "success"}
           >
-            {saving ? 'Saving...' : 'Save All Changes'}
+            {saving ? 'Saving...' : hasUnsavedChanges ? 'Save Changes' : 'All Saved'}
           </Button>
           <Button
             variant="outlined"
