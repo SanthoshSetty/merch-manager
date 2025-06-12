@@ -1,0 +1,6 @@
+{
+  "updates": {
+    "description": "NEW TARGETED DESCRIPTION - Testing field preservation functionality"
+  },
+  "updateMask": "attributes.description"
+}

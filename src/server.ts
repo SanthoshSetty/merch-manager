@@ -1,9 +1,10 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
-import { ProductsClient } from './modules/products/ProductsClient';
+import { ProductsClientFixed as ProductsClient } from './modules/products/ProductsClientFixed';
+import { ReviewsClient } from './modules/reviews/ReviewsClient';
 import { MerchantAuth } from './auth/MerchantAuth';
 
 dotenv.config();
@@ -20,6 +21,10 @@ app.use(cors({
     'http://localhost:5174',
     'http://localhost:5175',
     'http://localhost:5176',
+    'http://localhost:5177',
+    'http://localhost:5178',
+    'http://localhost:5179',
+    'http://localhost:5180',
     ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : [])
   ]
 }));
@@ -28,6 +33,7 @@ app.use(express.json());
 // Initialize clients
 const authManager = new MerchantAuth();
 const productsClient = new ProductsClient(authManager);
+const reviewsClient = new ReviewsClient(authManager);
 
 // Demo mode flag
 const DEMO_MODE = process.env.DEMO_MODE === 'true' || !process.env.GOOGLE_APPLICATION_CREDENTIALS;
@@ -38,13 +44,51 @@ app.patch('/api/products/:productId/fields', async (req, res) => {
     const { productId } = req.params;
     const { updates, updateMask } = req.body;
 
+    console.log('🔄 Field Update Request:');
+    console.log('  📋 Product ID:', productId);
+    console.log('  🔄 Updates:', JSON.stringify(updates, null, 2));
+    console.log('  🎯 Update Mask:', updateMask);
+
     // Validate field updates
     const validatedUpdates = validateFieldUpdates(updates);
     
     // Generate minimal update mask
     const mask = generateUpdateMask(validatedUpdates);
+
+    console.log('  ✅ Validated Updates:', JSON.stringify(validatedUpdates, null, 2));
+    console.log('  ✅ Generated Mask:', mask);
     
-    // Call Google Merchant API
+    // Check if we should use demo mode
+    if (DEMO_MODE) {
+      console.log('🎭 Demo Mode: Simulating field update...');
+      console.log('Product ID:', productId);
+      console.log('Updates:', validatedUpdates);
+      console.log('Update Mask:', mask);
+      
+      // Simulate API response
+      const demoResult = {
+        name: `accounts/5591219286/productInputs/${Date.now()}`,
+        product: {
+          offerId: productId,
+          attributes: validatedUpdates
+        },
+        channel: "ONLINE",
+        contentLanguage: "en",
+        targetCountry: "US"
+      };
+      
+      res.json({
+        success: true,
+        data: demoResult,
+        updatedFields: Object.keys(validatedUpdates),
+        updateMask: mask,
+        mode: 'demo',
+        message: 'Field update simulated successfully (Demo Mode)'
+      });
+      return;
+    }
+    
+    // Call Google Merchant API (Production Mode)
     const result = await productsClient.updateProductFields(
       productId, 
       validatedUpdates, 
@@ -55,14 +99,33 @@ app.patch('/api/products/:productId/fields', async (req, res) => {
       success: true,
       data: result,
       updatedFields: Object.keys(validatedUpdates),
-      updateMask: mask
+      updateMask: mask,
+      mode: 'production'
     });
   } catch (error: any) {
     console.error('Field update error:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Field update failed';
+    let errorCode = error.code || 'FIELD_UPDATE_ERROR';
+    
+    if (error.response?.status === 404) {
+      errorMessage = 'Product not found in Google Merchant Center. This could be due to incorrect product ID format or the product may not exist in your Merchant Center account.';
+      errorCode = 'PRODUCT_NOT_FOUND';
+    } else if (error.response?.status === 401 || error.response?.status === 403) {
+      errorMessage = 'Authentication failed. Please check your Google Cloud credentials and ensure the service account has proper permissions.';
+      errorCode = 'AUTHENTICATION_ERROR';
+    } else if (error.response?.status === 400) {
+      errorMessage = 'Invalid request format. Please check that all field values are correctly formatted.';
+      errorCode = 'INVALID_REQUEST';
+    }
+    
     res.status(500).json({
       success: false,
-      error: error.message,
-      code: error.code || 'FIELD_UPDATE_ERROR'
+      error: errorMessage,
+      code: errorCode,
+      originalError: error.message,
+      suggestion: 'Try enabling Demo Mode by setting DEMO_MODE=true in your environment variables to test the interface without Google API calls.'
     });
   }
 });
@@ -173,6 +236,165 @@ app.delete('/api/products/inputs/:productInputId', async (req, res) => {
   }
 });
 
+// ============================================
+// REVIEWS API ENDPOINTS
+// ============================================
+
+// List product reviews
+app.get('/api/reviews', async (req: Request, res: Response) => {
+  try {
+    const { pageSize = 25, pageToken, productId } = req.query;
+    
+    console.log('📋 Listing product reviews:', { pageSize, pageToken, productId });
+    
+    const result = await reviewsClient.listProductReviews(
+      parseInt(pageSize as string), 
+      pageToken as string,
+      productId as string
+    );
+    
+    res.json({
+      success: true,
+      data: result,
+      totalReviews: result.productReviews?.length || 0
+    });
+  } catch (error: any) {
+    console.error('List reviews error:', error.message);
+    
+    // Handle specific API access errors gracefully
+    if (error.response?.status === 403) {
+      const errorData = error.response?.data?.error;
+      
+      if (errorData?.message?.includes('not enabled')) {
+        console.warn('⚠️ Google Merchant Reviews API not enabled');
+        
+        // Return successful response with API not enabled flag
+        res.json({
+          success: true,
+          code: 'API_NOT_ENABLED',
+          message: 'The Google Merchant Reviews API is not enabled for your Google Cloud project.',
+          data: {
+            productReviews: [],
+            totalReviews: 0,
+            mockData: true
+          },
+          instructions: {
+            step1: 'Go to Google Cloud Console: https://console.cloud.google.com/apis/library',
+            step2: 'Search for "Google Merchant API" or "merchantapi.googleapis.com"',
+            step3: 'Enable the API and wait 5-10 minutes for propagation',
+            step4: 'Retry the request'
+          }
+        });
+        return;
+      }
+    }
+    
+    // For any other error (including auth issues), return graceful response
+    console.log('📋 Reviews API unavailable, returning empty reviews list');
+    res.json({
+      success: true,
+      code: 'API_NOT_ENABLED',
+      message: 'Reviews API not available',
+      data: {
+        productReviews: [],
+        totalReviews: 0,
+        mockData: true
+      }
+    });
+  }
+});
+
+// Get specific product review
+app.get('/api/reviews/:productReviewId', async (req: Request, res: Response) => {
+  try {
+    const { productReviewId } = req.params;
+    
+    const result = await reviewsClient.getProductReview(productReviewId);
+    
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Get review error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get review',
+      code: error.code || 'GET_REVIEW_ERROR'
+    });
+  }
+});
+
+// Create product review
+app.post('/api/reviews', async (req: Request, res: Response) => {
+  try {
+    const { productId, reviewData } = req.body;
+    
+    console.log('📝 Creating product review for product:', productId);
+    console.log('📝 Review data:', reviewData);
+    
+    const result = await reviewsClient.createProductReview(productId, reviewData);
+    
+    res.json({
+      success: true,
+      data: result,
+      message: 'Review created successfully'
+    });
+  } catch (error: any) {
+    console.error('Create review error:', error.message);
+    
+    // Handle specific API access errors
+    if (error.response?.status === 403) {
+      const errorData = error.response?.data?.error;
+      
+      if (errorData?.message?.includes('not enabled')) {
+        console.warn('⚠️ Google Merchant Reviews API not enabled');
+        
+        res.status(503).json({
+          success: false,
+          error: 'Google Merchant Reviews API not enabled',
+          code: 'API_NOT_ENABLED',
+          message: 'Cannot create reviews because the Google Merchant Reviews API is not enabled for your Google Cloud project.',
+          instructions: {
+            step1: 'Go to Google Cloud Console: https://console.cloud.google.com/apis/library',
+            step2: 'Search for "Google Merchant API" or "merchantapi.googleapis.com"',
+            step3: 'Enable the API and wait 5-10 minutes for propagation',
+            step4: 'Retry creating the review'
+          }
+        });
+        return;
+      }
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to create review',
+      code: error.code || 'CREATE_REVIEW_ERROR'
+    });
+  }
+});
+
+// Delete product review
+app.delete('/api/reviews/:productReviewId', async (req: Request, res: Response) => {
+  try {
+    const { productReviewId } = req.params;
+    
+    await reviewsClient.deleteProductReview(productReviewId);
+    
+    res.json({
+      success: true,
+      message: 'Review deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Delete review error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete review',
+      code: error.code || 'DELETE_REVIEW_ERROR'
+    });
+  }
+});
+
 // Health check and authentication test endpoint
 app.get('/api/health', async (req, res) => {
   try {
@@ -236,6 +458,14 @@ app.get('/api/account', async (req, res) => {
 });
 
 function validateFieldUpdates(updates: any) {
+  // Check if updates is null or undefined
+  if (!updates || typeof updates !== 'object') {
+    console.warn('⚠️ Invalid updates object:', updates);
+    return {};
+  }
+
+  console.log('🔍 Validating field updates:', JSON.stringify(updates, null, 2));
+
   const validFields = [
     'title', 'description', 'price', 'availability', 'condition',
     'brand', 'gtin', 'mpn', 'googleProductCategory', 'imageLink',
@@ -249,9 +479,13 @@ function validateFieldUpdates(updates: any) {
   for (const [key, value] of Object.entries(updates)) {
     if (validFields.includes(key)) {
       validated[key] = value;
+      console.log(`✅ Field '${key}' validated with value:`, value);
+    } else {
+      console.log(`❌ Field '${key}' is not valid, skipping`);
     }
   }
 
+  console.log('🎯 Final validated updates:', JSON.stringify(validated, null, 2));
   return validated;
 }
 

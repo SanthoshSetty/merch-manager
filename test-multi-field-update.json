@@ -1,0 +1,8 @@
+{
+  "updates": {
+    "title": "UPDATED TITLE - Field preservation test",
+    "availability": "in stock",
+    "brand": "Test Brand"
+  },
+  "updateMask": "attributes.title,attributes.availability,attributes.brand"
+}

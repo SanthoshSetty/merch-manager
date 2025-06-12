@@ -29,6 +29,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ProductForm from './ProductForm';
 import FieldUpdateDashboard from './FieldUpdateDashboard';
+import ProductReviews from './ProductReviews';
 
 interface Product {
   name: string;
@@ -235,7 +236,7 @@ export default function ProductDetailPage() {
                     {product.attributes.availability && (
                       <Chip
                         label={product.attributes.availability.replace('_', ' ')}
-                        color={product.attributes.availability === 'in stock' ? 'success' : 'warning'}
+                        color={product.attributes.availability.replace(/ /g, '_') === 'in_stock' ? 'success' : 'warning'}
                         variant="outlined"
                       />
                     )}
@@ -362,7 +363,7 @@ export default function ProductDetailPage() {
                 unitPricingBaseMeasure: product.attributes.unitPricingBaseMeasure?.value?.toString() || '',
                 
                 // Inventory
-                availability: product.attributes.availability || 'in_stock',
+                availability: (product.attributes.availability || 'in_stock').replace(/ /g, '_'),
                 sellOnGoogleQuantity: product.attributes.sellOnGoogleQuantity || '',
                 minHandlingTime: product.attributes.minHandlingTime || '',
                 maxHandlingTime: product.attributes.maxHandlingTime || '',
@@ -422,6 +423,11 @@ export default function ProductDetailPage() {
               onUpdate={handleProductUpdate}
             />
           </FieldUpdateDashboard>
+        </Box>
+
+        {/* Product Reviews Section */}
+        <Box>
+          <ProductReviews productId={product.offerId} />
         </Box>
       </Stack>
     </Container>

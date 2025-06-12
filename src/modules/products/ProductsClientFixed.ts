@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { MerchantAuth } from '../../auth/MerchantAuth';
 
-export class ProductsClient {
+export class ProductsClientFixed {
   private baseUrl: string;
   private merchantId: string;
 
@@ -11,9 +11,9 @@ export class ProductsClient {
   }
 
   async updateProductFields(productId: string, updates: any, updateMask: string) {
-    console.log('🚀🚀🚀 NEW FRESH ProductsClient LOADED! 🚀🚀🚀');
-    console.log('✅✅✅ Module caching issue resolved with fresh file! ✅✅✅');
-    console.log('🎯🎯🎯 Feed label parsing implementation active! 🎯🎯🎯');
+    console.log('🚀🚀🚀 FIXED IMPLEMENTATION LOADED! 🚀🚀🚀');
+    console.log('✅✅✅ This is the NEW ProductsClientFixed with feed label parsing! ✅✅✅');
+    console.log('🎯🎯🎯 Module caching issue bypassed successfully! 🎯🎯🎯');
     
     const token = await this.auth.getAccessToken();
     
@@ -32,7 +32,7 @@ export class ProductsClient {
     const [channel, contentLanguage, feedLabel, ...offerIdParts] = parts;
     const offerId = offerIdParts.join('~'); // In case offerId contains ~ characters
     
-    console.log('🔍 FRESH Field Update Request Analysis:');
+    console.log('🔍 NEW Field Update Request Analysis:');
     console.log('  📋 Full Product ID:', productId);
     console.log('  🎯 Extracted Product ID:', actualProductId);
     console.log('  📂 Parsed Components:');
@@ -65,7 +65,7 @@ export class ProductsClient {
     const dataSourceId = dataSourceMapping[feedLabel] || dataSourceMapping['US']; // fallback to US
     const fullDataSourceId = `accounts/${this.merchantId}/dataSources/${dataSourceId}`;
 
-    console.log('📤 FRESH Sending product update via productInputs:insert...');
+    console.log('📤 NEW Sending product update via productInputs:insert...');
     console.log('  📦 Fields to update:', Object.keys(updates));
     console.log('  📡 API URL:', apiUrl);
     console.log('  🏷️ Feed Label:', feedLabel);
@@ -83,14 +83,14 @@ export class ProductsClient {
         }
       });
 
-      console.log('✅ FRESH Product update successful!');
+      console.log('✅ NEW Product update successful!');
       console.log('  📊 Response Status:', response.status);
       console.log('  📋 Response Data:', JSON.stringify(response.data, null, 2));
       
       return response.data;
       
     } catch (error: any) {
-      console.error('❌ FRESH Product Update Error:');
+      console.error('❌ NEW Product Update Error:');
       console.error('  🔥 Status:', error.response?.status);
       console.error('  📄 Status Text:', error.response?.statusText);
       console.error('  📊 Response Data:', JSON.stringify(error.response?.data, null, 2));

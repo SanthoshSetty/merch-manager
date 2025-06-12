@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { MerchantAuth } from '../../auth/MerchantAuth';
 
-export class ProductsClient {
+export class ProductsClientNew {
   private baseUrl: string;
   private merchantId: string;
 
@@ -11,9 +11,8 @@ export class ProductsClient {
   }
 
   async updateProductFields(productId: string, updates: any, updateMask: string) {
-    console.log('🚀🚀🚀 NEW FRESH ProductsClient LOADED! 🚀🚀🚀');
-    console.log('✅✅✅ Module caching issue resolved with fresh file! ✅✅✅');
-    console.log('🎯🎯🎯 Feed label parsing implementation active! 🎯🎯🎯');
+    console.log('🚀🚀🚀 NEW ProductsClientNew.updateProductFields method executing! 🚀🚀🚀');
+    console.log('🎉 This is the BRAND NEW implementation with feed label parsing!');
     
     const token = await this.auth.getAccessToken();
     
@@ -30,9 +29,9 @@ export class ProductsClient {
     }
     
     const [channel, contentLanguage, feedLabel, ...offerIdParts] = parts;
-    const offerId = offerIdParts.join('~'); // In case offerId contains ~ characters
+    const offerId = offerIdParts.join('~');
     
-    console.log('🔍 FRESH Field Update Request Analysis:');
+    console.log('🔍 NEW Field Update Request Analysis:');
     console.log('  📋 Full Product ID:', productId);
     console.log('  🎯 Extracted Product ID:', actualProductId);
     console.log('  📂 Parsed Components:');
@@ -56,16 +55,15 @@ export class ProductsClient {
     const apiUrl = `${this.baseUrl}/accounts/${this.merchantId}/productInputs:insert`;
     
     // Use the correct data source based on feed label
-    // DE feed uses 10536470531, US feed uses 10536290691 (based on your product data)
     const dataSourceMapping: { [key: string]: string } = {
       'DE': '10536470531',
       'US': '10536290691'
     };
     
-    const dataSourceId = dataSourceMapping[feedLabel] || dataSourceMapping['US']; // fallback to US
+    const dataSourceId = dataSourceMapping[feedLabel] || dataSourceMapping['US'];
     const fullDataSourceId = `accounts/${this.merchantId}/dataSources/${dataSourceId}`;
 
-    console.log('📤 FRESH Sending product update via productInputs:insert...');
+    console.log('📤 NEW Sending product update via productInputs:insert...');
     console.log('  📦 Fields to update:', Object.keys(updates));
     console.log('  📡 API URL:', apiUrl);
     console.log('  🏷️ Feed Label:', feedLabel);
@@ -83,14 +81,14 @@ export class ProductsClient {
         }
       });
 
-      console.log('✅ FRESH Product update successful!');
+      console.log('✅ NEW Product update successful!');
       console.log('  📊 Response Status:', response.status);
       console.log('  📋 Response Data:', JSON.stringify(response.data, null, 2));
       
       return response.data;
       
     } catch (error: any) {
-      console.error('❌ FRESH Product Update Error:');
+      console.error('❌ NEW Product Update Error:');
       console.error('  🔥 Status:', error.response?.status);
       console.error('  📄 Status Text:', error.response?.statusText);
       console.error('  📊 Response Data:', JSON.stringify(error.response?.data, null, 2));
@@ -113,67 +111,38 @@ export class ProductsClient {
 
   async getProduct(productId: string) {
     const token = await this.auth.getAccessToken();
-    
-    const actualProductId = productId.startsWith('accounts/') 
-      ? productId.split('/products/')[1] 
-      : productId;
-    
-    console.log('🔍 Getting product:');
-    console.log('  📋 Original Product ID:', productId);
-    console.log('  🎯 Extracted Product ID:', actualProductId);
-    
-    // URL encode the product ID to handle special characters like ~
+    const actualProductId = productId.startsWith('accounts/') ? productId.split('/products/')[1] : productId;
     const encodedProductId = encodeURIComponent(actualProductId);
     const apiUrl = `${this.baseUrl}/accounts/${this.merchantId}/products/${encodedProductId}`;
-    console.log('  📡 API URL:', apiUrl);
-    console.log('  🔗 Encoded Product ID:', encodedProductId);
     
     const response = await axios.get(apiUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
-
     return response.data;
   }
 
   async listProducts(pageSize: number = 25, pageToken?: string) {
     const token = await this.auth.getAccessToken();
-    
     const params: any = { pageSize };
     if (pageToken) params.pageToken = pageToken;
 
-    const response = await axios.get(
-      `${this.baseUrl}/accounts/${this.merchantId}/products`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        params
-      }
-    );
-
+    const response = await axios.get(`${this.baseUrl}/accounts/${this.merchantId}/products`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      params
+    });
     return response.data;
   }
 
   async getAccount() {
     const token = await this.auth.getAccessToken();
-    
-    const response = await axios.get(
-      `https://merchantapi.googleapis.com/accounts/v1beta/accounts/${this.merchantId}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      }
-    );
-
+    const response = await axios.get(`https://merchantapi.googleapis.com/accounts/v1beta/accounts/${this.merchantId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     return response.data;
   }
 
   async createProductInput(productData: any) {
     const token = await this.auth.getAccessToken();
-    
     const productInput = {
       offerId: `new-product-${Date.now()}`,
       channel: "ONLINE",
@@ -182,35 +151,18 @@ export class ProductsClient {
       attributes: productData
     };
 
-    const response = await axios.post(
-      `${this.baseUrl}/accounts/${this.merchantId}/productInputs:insert`,
-      productInput,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        params: {
-          dataSource: `accounts/${this.merchantId}/dataSources/10536290691`
-        }
-      }
-    );
-
+    const response = await axios.post(`${this.baseUrl}/accounts/${this.merchantId}/productInputs:insert`, productInput, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      params: { dataSource: `accounts/${this.merchantId}/dataSources/10536290691` }
+    });
     return response.data;
   }
 
   async deleteProductInput(productInputId: string) {
     const token = await this.auth.getAccessToken();
-    
-    const response = await axios.delete(
-      `${this.baseUrl}/accounts/${this.merchantId}/productInputs/${productInputId}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      }
-    );
-
+    const response = await axios.delete(`${this.baseUrl}/accounts/${this.merchantId}/productInputs/${productInputId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     return response.data;
   }
 }

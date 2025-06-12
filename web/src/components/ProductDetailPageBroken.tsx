@@ -329,7 +329,7 @@ export default function ProductDetailPage() {
                 price: product.attributes.price?.amountMicros 
                   ? (parseInt(product.attributes.price.amountMicros) / 1000000).toString()
                   : '',
-                availability: product.attributes.availability || 'in_stock',
+                availability: (product.attributes.availability || 'in_stock').replace(/ /g, '_'),
                 condition: product.attributes.condition || 'new',
                 brand: product.attributes.brand || '',
                 gtin: Array.isArray(product.attributes.gtin) 

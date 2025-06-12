@@ -89,6 +89,7 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
   });
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'success' | 'error' | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleFieldChange = (field: string, value: any) => {
     setProductData((prev: any) => ({
@@ -102,7 +103,36 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
 
   const handleSaveField = async (field: string, value: any) => {
     try {
-      console.log(`Field ${field} updating to:`, value);
+      console.log(`🔍 Field ${field} updating to:`, value);
+      
+      // Validate the field value before sending
+      let processedValue = value;
+      
+      // Special handling for price fields
+      if (['price', 'salePrice', 'costOfGoodsSold'].includes(field)) {
+        if (typeof value === 'string' && value.trim() !== '') {
+          const numValue = parseFloat(value);
+          if (isNaN(numValue) || numValue < 0) {
+            console.warn(`⚠️ Invalid ${field} value: ${value}, skipping update`);
+            return;
+          }
+          processedValue = {
+            amountMicros: Math.round(numValue * 1000000).toString(),
+            currencyCode: 'USD'
+          };
+        } else if (value === '' || value === null || value === undefined) {
+          // Skip empty price fields
+          console.log(`📋 Skipping empty ${field} field`);
+          return;
+        }
+      }
+      
+      const requestBody = {
+        updates: { [field]: processedValue },
+        updateMask: `attributes.${field}`
+      };
+      
+      console.log(`📤 Sending field update:`, requestBody);
       
       // Call field update API
       const response = await fetch(`http://localhost:3001/api/products/${encodeURIComponent(productId)}/fields`, {
@@ -110,86 +140,169 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          updates: { [field]: value },
-          updateMask: `attributes.${field}`
-        }),
+        body: JSON.stringify(requestBody),
+      });
+
+      const result = await response.json();
+      
+      console.log(`📡 Field ${field} API response:`, {
+        status: response.status,
+        ok: response.ok,
+        result: result
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.error(`❌ HTTP Error for field ${field}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          responseBody: result
+        });
+        throw new Error(`Update failed: ${result.error || response.statusText || `HTTP ${response.status}`}`);
       }
 
-      const result = await response.json();
       if (result.success) {
-        console.log(`Field ${field} updated successfully:`, result.data);
+        console.log(`✅ Field ${field} updated successfully!`);
+        if (result.mode === 'demo') {
+          console.log('🎭 Demo Mode: Field update simulated');
+        }
+        // Call onUpdate callback if provided
+        if (onUpdate) {
+          onUpdate();
+        }
       } else {
-        throw new Error(result.error || 'Update failed');
-      }
-      
-      // Call onUpdate callback if provided
-      if (onUpdate) {
-        onUpdate();
+        console.error(`❌ API returned failure for field ${field}:`, result);
+        throw new Error(result.error || 'API returned failure status');
       }
     } catch (error: any) {
-      console.error('Error updating field:', error);
-      // You could show a toast notification here for better UX
+      console.error(`💥 Error updating field ${field}:`, {
+        message: error.message,
+        stack: error.stack,
+        fieldValue: value
+      });
+      // Show user-friendly error message
+      console.warn(`Field ${field} update failed. If you see API errors, consider enabling Demo Mode for testing.`);
     }
   };
 
   const handleSaveAll = async () => {
     setSaving(true);
     setSaveStatus(null);
+    setSaveError(null);
     
     try {
-      // Transform data to match Google Merchant API format
-      const transformedData = {
-        ...productData,
-        price: productData.price ? {
-          amountMicros: Math.round(parseFloat(productData.price) * 1000000).toString(),
+      // Transform data to match Google Merchant API format with proper validation
+      const transformPrice = (value: string) => {
+        if (!value || value.trim() === '') return undefined;
+        const numValue = parseFloat(value);
+        if (isNaN(numValue) || numValue < 0) return undefined;
+        return {
+          amountMicros: Math.round(numValue * 1000000).toString(),
           currencyCode: 'USD'
-        } : undefined,
-        salePrice: productData.salePrice ? {
-          amountMicros: Math.round(parseFloat(productData.salePrice) * 1000000).toString(),
-          currencyCode: 'USD'
-        } : undefined,
-        costOfGoodsSold: productData.costOfGoodsSold ? {
-          amountMicros: Math.round(parseFloat(productData.costOfGoodsSold) * 1000000).toString(),
-          currencyCode: 'USD'
-        } : undefined,
+        };
       };
 
+      const transformedData = {
+        ...productData,
+        price: transformPrice(productData.price),
+        salePrice: transformPrice(productData.salePrice),
+        costOfGoodsSold: transformPrice(productData.costOfGoodsSold),
+      };
+
+      // Clean up problematic data before sending to API
+      const cleanedData: Record<string, any> = {};
+      Object.keys(transformedData).forEach(key => {
+        const value = (transformedData as any)[key];
+        
+        // Skip undefined values
+        if (value === undefined) return;
+        
+        // Skip empty strings for most fields (except where empty is valid)
+        if (value === '' && !['title', 'description'].includes(key)) return;
+        
+        // Skip empty arrays
+        if (Array.isArray(value) && value.length === 0) return;
+        
+        // Skip false boolean values for optional fields
+        if (typeof value === 'boolean' && !value && key !== 'identifierExists') return;
+        
+        // Only include valid, meaningful data
+        cleanedData[key] = value;
+      });
+
       // Call bulk update API
-      console.log('Saving all product data:', transformedData);
+      console.log('🔍 Saving product data...');
+      console.log('📊 Original data keys:', Object.keys(transformedData).length);
+      console.log('📊 Cleaned data keys:', Object.keys(cleanedData).length);
+      console.log('📊 Cleaned data:', cleanedData);
+      console.log('📋 Update mask:', Object.keys(cleanedData).map(key => `attributes.${key}`).join(','));
+      
+      const requestBody = {
+        updates: cleanedData,
+        updateMask: Object.keys(cleanedData).map(key => `attributes.${key}`).join(',')
+      };
       
       const response = await fetch(`http://localhost:3001/api/products/${encodeURIComponent(productId)}/fields`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          updates: transformedData,
-          updateMask: Object.keys(transformedData).map(key => `attributes.${key}`).join(',')
-        }),
+        body: JSON.stringify(requestBody),
+      });
+
+      const result = await response.json();
+      
+      console.log('📡 API Response:', {
+        status: response.status,
+        ok: response.ok,
+        result: result
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.error('❌ HTTP Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          responseBody: result
+        });
+        throw new Error(`Save failed: ${result.error || response.statusText || `HTTP ${response.status}`}`);
       }
 
-      const result = await response.json();
       if (result.success) {
-        console.log('Bulk save successful:', result.data);
+        console.log('✅ Bulk save successful!');
         setSaveStatus('success');
+        if (onUpdate) {
+          onUpdate();
+        }
       } else {
-        throw new Error(result.error || 'Bulk save failed');
+        console.error('❌ API returned failure:', result);
+        throw new Error(result.error || 'API returned failure status');
       }
-      if (onUpdate) {
-        onUpdate();
-      }
-    } catch (error) {
-      console.error('Error saving product:', error);
+    } catch (error: any) {
+      // Enhanced error logging to debug the issue
+      console.error('💥 Error saving product:', error);
+      console.error('💥 Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name,
+        type: typeof error,
+        constructor: error?.constructor?.name,
+        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+      });
+      
       setSaveStatus('error');
+      
+      // Better error message extraction
+      let errorMessage = 'Unknown error occurred';
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error?.error) {
+        errorMessage = error.error;
+      } else if (error?.statusText) {
+        errorMessage = error.statusText;
+      }
+      
+      setSaveError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -215,7 +328,18 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
           )}
           {saveStatus === 'error' && (
             <Alert severity="error" sx={{ mt: 2 }}>
-              Error saving product. Please try again.
+              <Typography variant="body2" gutterBottom>
+                <strong>Error saving product.</strong>
+              </Typography>
+              {saveError && (
+                <Typography variant="body2" gutterBottom sx={{ mt: 1, p: 1, bgcolor: 'grey.100', borderRadius: 1, fontFamily: 'monospace', fontSize: '0.85em' }}>
+                  {saveError}
+                </Typography>
+              )}
+              <Typography variant="body2">
+                Please check the browser console for detailed error information. 
+                Common issues include invalid price formats or network connectivity problems.
+              </Typography>
             </Alert>
           )}
         </Box>

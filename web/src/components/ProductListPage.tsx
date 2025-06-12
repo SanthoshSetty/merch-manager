@@ -107,7 +107,8 @@ export default function ProductListPage() {
   );
 
   const getAvailabilityColor = (availability?: string) => {
-    switch (availability) {
+    const normalizedAvailability = availability?.replace(/ /g, '_');
+    switch (normalizedAvailability) {
       case 'in_stock': return 'success';
       case 'out_of_stock': return 'error';
       case 'preorder': return 'warning';

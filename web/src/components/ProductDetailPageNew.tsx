@@ -246,7 +246,7 @@ export default function ProductDetailPage() {
                     {product.attributes.availability && (
                       <Chip
                         label={product.attributes.availability.replace('_', ' ')}
-                        color={product.attributes.availability === 'in stock' ? 'success' : 'warning'}
+                        color={product.attributes.availability.replace(/ /g, '_') === 'in_stock' ? 'success' : 'warning'}
                         variant="outlined"
                       />
                     )}
@@ -343,7 +343,7 @@ export default function ProductDetailPage() {
                 price: product.attributes.price?.amountMicros 
                   ? (parseInt(product.attributes.price.amountMicros) / 1000000).toString()
                   : '',
-                availability: product.attributes.availability || 'in_stock',
+                availability: (product.attributes.availability || 'in_stock').replace(/ /g, '_'),
                 condition: product.attributes.condition || 'new',
                 brand: product.attributes.brand || '',
                 gtin: Array.isArray(product.attributes.gtin) 
