@@ -7,6 +7,7 @@ import { ProductsClientFixed as ProductsClient } from './modules/products/Produc
 import { ReviewsClient } from './modules/reviews/ReviewsClient';
 import { MerchantAuth } from './auth/MerchantAuth';
 import competitivePricingRouter from './routes/competitive-pricing';
+import aiContentRouter from './routes/ai-content';
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.use(express.json());
 
 // Mount routes
 app.use('/api/competitive-pricing', competitivePricingRouter);
+app.use('/api/ai-content', aiContentRouter);
 
 // Initialize clients
 const authManager = new MerchantAuth();

@@ -46,6 +46,8 @@ import {
   Settings as SettingsIcon,
   TrendingUp as CompetitiveIcon,
   OpenInNew as ExternalLinkIcon,
+  AutoAwesome as AIIcon,
+  Psychology as BrainIcon,
 } from '@mui/icons-material';
 import CustomFieldBuilder, { type CustomField } from './CustomFieldBuilder';
 import CustomFieldManager from './CustomFieldManager';
@@ -93,6 +95,54 @@ const StableTextField = memo(({ ...props }: any) => {
   return <TextField {...props} />;
 });
 
+// AI-Enhanced TextField component
+const AIEnhancedTextField = memo(({ 
+  fieldName, 
+  fieldInstructions,
+  onAIGenerate,
+  aiLoading,
+  ...textFieldProps 
+}: any) => {
+  const handleAIGenerate = () => {
+    if (onAIGenerate && fieldName && fieldInstructions) {
+      onAIGenerate(fieldName, fieldInstructions);
+    }
+  };
+
+  return (
+    <Box sx={{ position: 'relative' }}>
+      <StableTextField {...textFieldProps} />
+      <Box sx={{ 
+        position: 'absolute', 
+        top: 8, 
+        right: 8, 
+        zIndex: 1 
+      }}>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={handleAIGenerate}
+          disabled={aiLoading}
+          startIcon={aiLoading ? <CircularProgress size={16} /> : <AIIcon />}
+          sx={{ 
+            minWidth: 'auto',
+            px: 1,
+            py: 0.5,
+            fontSize: '0.75rem',
+            bgcolor: 'background.paper',
+            '&:hover': {
+              bgcolor: 'primary.light',
+              color: 'primary.contrastText',
+            }
+          }}
+        >
+          {aiLoading ? 'AI...' : 'AI'}
+        </Button>
+      </Box>
+    </Box>
+  );
+});
+
 function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFieldGroupsProps) {
   const [customFieldBuilderOpen, setCustomFieldBuilderOpen] = useState(false);
   const [editingCustomField, setEditingCustomField] = useState<CustomField | undefined>();
@@ -113,6 +163,12 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
   const [competitivePricingLoading, setCompetitivePricingLoading] = useState(false);
   const [competitivePricingData, setCompetitivePricingData] = useState<any[]>([]);
   const [competitivePricingError, setCompetitivePricingError] = useState<string | null>(null);
+
+  // AI Content Generation state
+  const [aiGenerationLoading, setAiGenerationLoading] = useState<Record<string, boolean>>({});
+  const [aiGenerationError, setAiGenerationError] = useState<string | null>(null);
+  const [comprehensiveAnalysisLoading, setComprehensiveAnalysisLoading] = useState(false);
+  const [comprehensiveAnalysisData, setComprehensiveAnalysisData] = useState<any>(null);
 
   // Country and currency options
   const countryOptions = [
@@ -216,6 +272,121 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
     }
   };
 
+  // AI Content Generation functions
+  const generateFieldContent = async (fieldName: string, fieldInstructions: string) => {
+    if (!productData.title || !productData.brand) {
+      setAiGenerationError('Product title and brand are required for AI content generation');
+      return;
+    }
+
+    setAiGenerationLoading(prev => ({ ...prev, [fieldName]: true }));
+    setAiGenerationError(null);
+
+    try {
+      const response = await fetch('/api/ai-content/generate-field', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productName: productData.title,
+          brand: productData.brand,
+          fieldName,
+          fieldInstructions,
+          productContext: comprehensiveAnalysisData ? {
+            description: comprehensiveAnalysisData.description,
+            category: comprehensiveAnalysisData.category,
+            specifications: comprehensiveAnalysisData
+          } : null
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.content) {
+        onFieldChange(fieldName, result.content);
+      } else {
+        throw new Error(result.error || 'Failed to generate content');
+      }
+    } catch (error: any) {
+      console.error('AI content generation error:', error);
+      setAiGenerationError(error.message || 'Failed to generate content');
+    } finally {
+      setAiGenerationLoading(prev => ({ ...prev, [fieldName]: false }));
+    }
+  };
+
+  const generateComprehensiveAnalysis = async () => {
+    if (!productData.title || !productData.brand) {
+      setAiGenerationError('Product title and brand are required for comprehensive analysis');
+      return;
+    }
+
+    setComprehensiveAnalysisLoading(true);
+    setAiGenerationError(null);
+    
+    try {
+      const response = await fetch('/api/ai-content/analyze-product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productName: productData.title,
+          brand: productData.brand,
+          country: 'Global'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setComprehensiveAnalysisData(result.data);
+        
+        // Auto-fill multiple fields from comprehensive analysis
+        const fieldsToUpdate = [
+          'description',
+          'category', 
+          'googleProductCategory',
+          'gtin',
+          'mpn',
+          'condition',
+          'availability',
+          'color',
+          'material',
+          'size',
+          'customLabel0',
+          'customLabel1',
+          'customLabel2',
+          'customLabel3',
+          'customLabel4'
+        ];
+
+        fieldsToUpdate.forEach(field => {
+          if (result.data[field] && result.data[field] !== 'N/A') {
+            onFieldChange(field, result.data[field]);
+          }
+        });
+        
+      } else {
+        throw new Error(result.error || 'Failed to analyze product');
+      }
+    } catch (error: any) {
+      console.error('Comprehensive analysis error:', error);
+      setAiGenerationError(error.message || 'Failed to analyze product');
+    } finally {
+      setComprehensiveAnalysisLoading(false);
+    }
+  };
+
   // Handle custom field changes
   const handleCustomFieldChange = (fieldId: string, value: any) => {
     setCustomFieldValue(fieldId, value);
@@ -250,6 +421,79 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
       <Stack spacing={2}>
+        {/* AI Content Generation Group */}
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <BrainIcon color="primary" />
+              <Typography variant="h6">AI Content Generation</Typography>
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack spacing={3}>
+              <Typography variant="body2" color="text.secondary">
+                Use AI to automatically generate product information based on your product name and brand. 
+                Choose comprehensive analysis to fill multiple fields at once, or use individual field generation buttons throughout the form.
+              </Typography>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Product: <strong>{productData.title || 'Not specified'}</strong>
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Brand: <strong>{productData.brand || 'Not specified'}</strong>
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Button
+                  variant="contained"
+                  onClick={generateComprehensiveAnalysis}
+                  disabled={comprehensiveAnalysisLoading || !productData.title || !productData.brand}
+                  startIcon={comprehensiveAnalysisLoading ? <CircularProgress size={20} /> : <BrainIcon />}
+                  sx={{ bgcolor: 'secondary.main', '&:hover': { bgcolor: 'secondary.dark' } }}
+                >
+                  {comprehensiveAnalysisLoading ? 'Analyzing Product...' : 'Generate All Fields with AI'}
+                </Button>
+                
+                {comprehensiveAnalysisData && (
+                  <Chip 
+                    label="AI Analysis Complete" 
+                    color="success" 
+                    variant="outlined"
+                    icon={<BrainIcon />}
+                  />
+                )}
+              </Box>
+
+              {aiGenerationError && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {aiGenerationError}
+                </Alert>
+              )}
+
+              {comprehensiveAnalysisData && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    AI Analysis Results
+                  </Typography>
+                  <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <strong>Generated Title:</strong> {comprehensiveAnalysisData.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <strong>Generated Description:</strong> {comprehensiveAnalysisData.description?.substring(0, 200)}...
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Category:</strong> {comprehensiveAnalysisData.category}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
+
         {/* Basic Information Group */}
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -260,7 +504,7 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={3}>
-              <StableTextField
+              <AIEnhancedTextField
                 fullWidth
                 label="Product Title"
                 value={productData.title || ''}
@@ -268,9 +512,13 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
                 required
                 error={!!validateTitle(productData.title)}
                 helperText={validateTitle(productData.title) || "Clear, descriptive product title (max 150 characters)"}
+                fieldName="title"
+                fieldInstructions="Generate a compelling, SEO-optimized product title for e-commerce that includes key features and brand name"
+                onAIGenerate={generateFieldContent}
+                aiLoading={aiGenerationLoading.title}
               />
               
-              <StableTextField
+              <AIEnhancedTextField
                 fullWidth
                 multiline
                 rows={4}
@@ -278,16 +526,24 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
                 value={productData.description || ''}
                 onChange={(e: any) => onFieldChange('description', e.target.value)}
                 helperText="Detailed product description (max 5000 characters)"
+                fieldName="description"
+                fieldInstructions="Generate a comprehensive, engaging product description highlighting key features, benefits, and specifications for e-commerce"
+                onAIGenerate={generateFieldContent}
+                aiLoading={aiGenerationLoading.description}
               />
 
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                <StableTextField
+                <AIEnhancedTextField
                   fullWidth
                   label="Brand"
                   value={productData.brand || ''}
                   onChange={(e: any) => onFieldChange('brand', e.target.value)}
                   required
                   helperText="Product brand name"
+                  fieldName="brand"
+                  fieldInstructions="Identify and provide the correct brand name for this product"
+                  onAIGenerate={generateFieldContent}
+                  aiLoading={aiGenerationLoading.brand}
                 />
                 <FormControl fullWidth required>
                   <InputLabel>Condition</InputLabel>
@@ -1183,15 +1439,19 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={3}>
-              <StableTextField
+              <AIEnhancedTextField
                 fullWidth
                 label="Google Product Category"
                 value={productData.googleProductCategory || ''}
                 onChange={(e: any) => onFieldChange('googleProductCategory', e.target.value)}
                 helperText="Google's product taxonomy ID"
+                fieldName="googleProductCategory"
+                fieldInstructions="Identify the most appropriate Google Product Category ID for this product based on Google's taxonomy"
+                onAIGenerate={generateFieldContent}
+                aiLoading={aiGenerationLoading.googleProductCategory}
               />
 
-              <StableTextField
+              <AIEnhancedTextField
                 fullWidth
                 multiline
                 rows={3}
@@ -1199,6 +1459,10 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
                 value={productData.productTypes?.join('\n') || ''}
                 onChange={(e: any) => onFieldChange('productTypes', e.target.value.split('\n').filter((type: string) => type.trim()))}
                 helperText="Custom product categories (one per line)"
+                fieldName="productTypes"
+                fieldInstructions="Generate relevant product type categories and subcategories for this product, one per line"
+                onAIGenerate={generateFieldContent}
+                aiLoading={aiGenerationLoading.productTypes}
               />
             </Stack>
           </AccordionDetails>
@@ -1232,7 +1496,7 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
                 type="url"
               />
 
-              <StableTextField
+              <AIEnhancedTextField
                 fullWidth
                 label="Product Highlights"
                 value={productData.productHighlights?.join('\n') || ''}
@@ -1240,6 +1504,10 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
                 helperText="Key selling points (one per line, max 10)"
                 multiline
                 rows={3}
+                fieldName="productHighlights"
+                fieldInstructions="Generate compelling bullet-point highlights showcasing the key features and benefits of this product, one per line"
+                onAIGenerate={generateFieldContent}
+                aiLoading={aiGenerationLoading.productHighlights}
               />
 
               {/* Promotion Integration */}
@@ -1270,7 +1538,31 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
               </Typography>
 
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                {[0, 1, 2, 3, 4].map((index) => (
+                <AIEnhancedTextField
+                  key="customLabel0"
+                  fullWidth
+                  label="Custom Label 0"
+                  value={productData.customLabel0 || ''}
+                  onChange={(e: any) => onFieldChange('customLabel0', e.target.value)}
+                  helperText="Label 0 for campaigns"
+                  fieldName="customLabel0"
+                  fieldInstructions="Generate a primary campaign label highlighting the main category or key feature of this product"
+                  onAIGenerate={generateFieldContent}
+                  aiLoading={aiGenerationLoading.customLabel0}
+                />
+                <AIEnhancedTextField
+                  key="customLabel1"
+                  fullWidth
+                  label="Custom Label 1"
+                  value={productData.customLabel1 || ''}
+                  onChange={(e: any) => onFieldChange('customLabel1', e.target.value)}
+                  helperText="Label 1 for campaigns"
+                  fieldName="customLabel1"
+                  fieldInstructions="Generate a secondary campaign label highlighting the target audience or use case for this product"
+                  onAIGenerate={generateFieldContent}
+                  aiLoading={aiGenerationLoading.customLabel1}
+                />
+                {[2, 3, 4].map((index) => (
                   <StableTextField
                     key={`customLabel${index}`}
                     fullWidth

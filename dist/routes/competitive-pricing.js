@@ -40,6 +40,15 @@ router.post('/analyze', (req, res) => {
             ]);
             let stdout = '';
             let stderr = '';
+            let processCompleted = false;
+            // Set timeout for 40 seconds
+            const timeout = setTimeout(() => {
+                if (!processCompleted) {
+                    console.log('⏰ Python script timeout (40s), falling back to simulation...');
+                    pythonProcess.kill();
+                    generateFallbackPricingData(productName, brand, country, currency, res);
+                }
+            }, 40000); // 40 seconds
             pythonProcess.stdout.on('data', (data) => {
                 stdout += data.toString();
             });
@@ -47,6 +56,8 @@ router.post('/analyze', (req, res) => {
                 stderr += data.toString();
             });
             pythonProcess.on('close', (code) => {
+                processCompleted = true;
+                clearTimeout(timeout);
                 if (code !== 0) {
                     console.error('❌ Python script failed:', stderr);
                     // Fallback to simulation if Python script fails
@@ -68,6 +79,8 @@ router.post('/analyze', (req, res) => {
                 }
             });
             pythonProcess.on('error', (error) => {
+                processCompleted = true;
+                clearTimeout(timeout);
                 console.error('❌ Failed to start Python process:', error);
                 // Fallback to simulation
                 return generateFallbackPricingData(productName, brand, country, currency, res);
