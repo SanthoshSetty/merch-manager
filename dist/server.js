@@ -11,6 +11,7 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const ProductsClientFixed_1 = require("./modules/products/ProductsClientFixed");
 const ReviewsClient_1 = require("./modules/reviews/ReviewsClient");
 const MerchantAuth_1 = require("./auth/MerchantAuth");
+const competitive_pricing_1 = __importDefault(require("./routes/competitive-pricing"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
@@ -27,10 +28,17 @@ app.use((0, cors_1.default)({
         'http://localhost:5178',
         'http://localhost:5179',
         'http://localhost:5180',
+        'http://localhost:5181',
+        'http://localhost:5182',
+        'http://localhost:5183',
+        'http://localhost:5184',
+        'http://localhost:5185',
         ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : [])
     ]
 }));
 app.use(express_1.default.json());
+// Mount routes
+app.use('/api/competitive-pricing', competitive_pricing_1.default);
 // Initialize clients
 const authManager = new MerchantAuth_1.MerchantAuth();
 const productsClient = new ProductsClientFixed_1.ProductsClientFixed(authManager);
