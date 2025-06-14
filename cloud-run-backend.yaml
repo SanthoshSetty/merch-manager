@@ -1,0 +1,45 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: merch-manager-backend
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cpu-limit: "2"
+        run.googleapis.com/memory-limit: "2Gi"
+        run.googleapis.com/timeout: "300"
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 100
+      containers:
+      - image: us-central1-docker.pkg.dev/PROJECT_ID/merch-manager/merch-manager-backend:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GOOGLE_CLOUD_PROJECT_ID
+          value: "neon-vigil-395120"
+        - name: GOOGLE_MERCHANT_ID
+          value: "5591219286"
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gemini-api-key
+              key: latest
+        - name: MERCHANT_API_BASE_URL
+          value: "https://merchantapi.googleapis.com"
+        - name: MERCHANT_API_VERSION
+          value: "v1beta"
+        - name: REQUIRED_SCOPES
+          value: "https://www.googleapis.com/auth/content"
+        - name: CORS_ORIGIN
+          value: "https://merch-manager-frontend-PROJECT_ID.a.run.app"
+        resources:
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+          requests:
+            cpu: "1"
+            memory: "1Gi"

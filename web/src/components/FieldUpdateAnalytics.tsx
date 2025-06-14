@@ -6,7 +6,6 @@ import {
   CardContent,
   LinearProgress,
   Chip,
-  Paper,
 } from '@mui/material';
 import {
   Analytics as AnalyticsIcon,

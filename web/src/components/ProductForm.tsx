@@ -14,6 +14,7 @@ import {
 import ProductFieldGroups from './ProductFieldGroups';
 import { useCustomFields } from '../hooks/useCustomFields';
 import { type CustomField } from './CustomFieldBuilder';
+import { config } from '../config/api';
 
 interface ProductFormProps {
   productId: string;
@@ -210,7 +211,7 @@ export default function ProductForm({ productId, initialData, onUpdate }: Produc
         updateMask: Object.keys(cleanedData).map(key => `attributes.${key}`).join(',')
       };
       
-      const response = await fetch(`http://localhost:3001/api/products/${encodeURIComponent(productId)}/fields`, {
+      const response = await fetch(`${config.API_BASE_URL}/api/products/${encodeURIComponent(productId)}/fields`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

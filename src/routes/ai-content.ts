@@ -30,10 +30,10 @@ router.post('/analyze-product', (req, res) => {
 
       console.log('🐍 Executing AI comprehensive product analysis...');
       
-      // Path to the Python script
-      const scriptPath = path.join(__dirname, '..', 'scripts', 'ai_content_generator.py');
+      // Path to the Python script - using absolute path to source directory
+      const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'ai_content_generator.py');
       
-      // Execute the Python script
+      // Execute the Python script with environment variables
       const pythonProcess = spawn('python3', [
         scriptPath,
         '--product', productName,
@@ -41,7 +41,9 @@ router.post('/analyze-product', (req, res) => {
         '--country', country,
         '--mode', 'comprehensive',
         '--api-key', geminiApiKey
-      ]);
+      ], {
+        env: { ...process.env }
+      });
 
       let stdout = '';
       let stderr = '';
@@ -105,9 +107,9 @@ router.post('/analyze-product', (req, res) => {
 router.post('/generate-field', (req, res) => {
   (async () => {
     try {
-      const { productName, brand, fieldName, fieldInstructions, productContext } = req.body;
+      const { productName, brand, fieldName, fieldInstructions, productContext, customInstructions, country = 'Global' } = req.body;
       
-      console.log('🤖 AI field generation requested:', { productName, brand, fieldName });
+      console.log('🤖 AI field generation requested:', { productName, brand, fieldName, country, hasCustomInstructions: !!customInstructions });
       
       // Validate required parameters
       if (!productName || !brand || !fieldName || !fieldInstructions) {
@@ -127,14 +129,15 @@ router.post('/generate-field', (req, res) => {
 
       console.log('🐍 Executing AI field content generation...');
       
-      // Path to the Python script
-      const scriptPath = path.join(__dirname, '..', 'scripts', 'ai_content_generator.py');
+      // Path to the Python script - using absolute path to source directory
+      const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'ai_content_generator.py');
       
       // Prepare arguments
       const args = [
         scriptPath,
         '--product', productName,
         '--brand', brand,
+        '--country', country,
         '--mode', 'field',
         '--field-name', fieldName,
         '--field-instructions', fieldInstructions,
@@ -145,9 +148,16 @@ router.post('/generate-field', (req, res) => {
       if (productContext) {
         args.push('--product-context', JSON.stringify(productContext));
       }
+
+      // Add custom instructions if provided
+      if (customInstructions) {
+        args.push('--custom-instructions', customInstructions);
+      }
       
-      // Execute the Python script
-      const pythonProcess = spawn('python3', args);
+      // Execute the Python script with environment variables
+      const pythonProcess = spawn('python3', args, {
+        env: { ...process.env }
+      });
 
       let stdout = '';
       let stderr = '';
@@ -277,15 +287,42 @@ function generateFallbackFieldContent(fieldName: string, fieldInstructions: stri
       }
   }
   
+  // Mock grounded sources for testing the frontend display
+  const mockGroundedSources = [
+    {
+      title: `${brand.toLowerCase()}.com`,
+      url: `https://www.${brand.toLowerCase()}.com`,
+      type: 'grounded_source'
+    },
+    {
+      title: 'Wikipedia',
+      url: 'https://en.wikipedia.org',
+      type: 'grounded_source'
+    },
+    {
+      title: 'Product Review Site',
+      url: 'https://example-reviews.com',
+      type: 'grounded_source'
+    },
+    {
+      title: 'Google Search',
+      url: 'https://www.google.com/search',
+      type: 'search_reference'
+    }
+  ];
+  
   res.json({
     success: true,
     content: fallbackContent,
+    grounded_sources: mockGroundedSources, // Added mock grounded sources
     metadata: {
       fieldName,
       productName,
       brand,
-      source: 'Fallback Field Content',
+      source: 'Fallback Field Content with Mock Sources',
       timestamp: new Date().toISOString(),
+      sources_count: mockGroundedSources.length,
+      custom_instructions_used: false,
       note: 'Fallback content used - set GEMINI_API_KEY environment variable for AI integration'
     }
   });

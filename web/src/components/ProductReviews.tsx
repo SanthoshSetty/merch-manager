@@ -29,7 +29,7 @@ import {
   Delete as DeleteIcon,
   Person as PersonIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
+import { apiClient } from '../config/api';
 
 interface ProductReview {
   name?: string;
@@ -75,7 +75,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
       setError(null);
       setApiNotEnabled(false);
       
-      const response = await axios.get('http://localhost:3001/api/reviews', {
+      const response = await apiClient.get('/api/reviews', {
         params: { productId }
       });
       
@@ -117,7 +117,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
       setSubmitting(true);
       setError(null);
 
-      const response = await axios.post('http://localhost:3001/api/reviews', {
+      const response = await apiClient.post('/api/reviews', {
         productId,
         reviewData: {
           title: newReview.title.trim() || undefined,
@@ -182,7 +182,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
         setReviews(prev => prev.filter(r => r.productReviewId !== review.productReviewId));
         console.log('Review removed locally');
       } else {
-        const response = await axios.delete(`http://localhost:3001/api/reviews/${review.productReviewId}`);
+        const response = await apiClient.delete(`/api/reviews/${review.productReviewId}`);
         if (response.data.success) {
           await loadReviews();
         } else {

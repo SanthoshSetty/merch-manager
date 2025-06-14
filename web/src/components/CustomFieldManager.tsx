@@ -26,6 +26,22 @@ import {
 } from '@mui/icons-material';
 import { type CustomField } from './CustomFieldBuilder';
 
+// For now, use regular Select and Switch in custom fields
+// TODO: Move AI-enhanced components to separate module when export issues are resolved
+
+// AI-Enhanced TextField for custom fields
+const AIEnhancedCustomTextField = ({ field, value, onChange, productData, aiGenerating, setAiGenerating, country, ...props }: any) => {
+  // For now, use regular TextField but we could enhance this further
+  return (
+    <StableTextField
+      {...props}
+      value={value || ''}
+      onChange={(e: any) => onChange(e.target.value)}
+      helperText={field.description}
+    />
+  );
+};
+
 // Stable TextField component to prevent cursor focus loss
 const StableTextField = memo(({ ...props }: any) => {
   return <TextField {...props} />;
@@ -38,6 +54,10 @@ interface CustomFieldManagerProps {
   onAddCustomField: () => void;
   onEditCustomField: (field: CustomField) => void;
   onRemoveCustomField: (fieldId: string) => void;
+  // AI enhancement props
+  aiGenerating?: any;
+  setAiGenerating?: (field: string, generating: boolean) => void;
+  country?: string;
 }
 
 export default function CustomFieldManager({
@@ -47,6 +67,9 @@ export default function CustomFieldManager({
   onAddCustomField,
   onEditCustomField,
   onRemoveCustomField,
+  aiGenerating = {},
+  setAiGenerating = () => {},
+  country = 'Singapore',
 }: CustomFieldManagerProps) {
 
   const renderCustomField = (field: CustomField) => {
@@ -56,13 +79,17 @@ export default function CustomFieldManager({
     switch (field.type) {
       case 'text':
         return (
-          <StableTextField
+          <AIEnhancedCustomTextField
             fullWidth
             label={field.label}
-            value={value || ''}
-            onChange={(e: any) => onChange(e.target.value)}
+            value={value}
+            onChange={onChange}
             required={field.required}
-            helperText={field.description}
+            field={field}
+            productData={productData}
+            aiGenerating={aiGenerating}
+            setAiGenerating={setAiGenerating}
+            country={country}
             inputProps={{
               minLength: field.validation?.minLength,
               maxLength: field.validation?.maxLength,
@@ -73,15 +100,19 @@ export default function CustomFieldManager({
 
       case 'textarea':
         return (
-          <StableTextField
+          <AIEnhancedCustomTextField
             fullWidth
             multiline
             rows={3}
             label={field.label}
-            value={value || ''}
-            onChange={(e: any) => onChange(e.target.value)}
+            value={value}
+            onChange={onChange}
             required={field.required}
-            helperText={field.description}
+            field={field}
+            productData={productData}
+            aiGenerating={aiGenerating}
+            setAiGenerating={setAiGenerating}
+            country={country}
             inputProps={{
               minLength: field.validation?.minLength,
               maxLength: field.validation?.maxLength,
@@ -112,7 +143,7 @@ export default function CustomFieldManager({
             control={
               <Switch
                 checked={value === true}
-                onChange={(e) => onChange(e.target.checked)}
+                onChange={(e: any) => onChange(e.target.checked)}
               />
             }
             label={field.label}
@@ -121,28 +152,30 @@ export default function CustomFieldManager({
 
       case 'select':
         return (
-          <FormControl fullWidth required={field.required}>
-            <InputLabel>{field.label}</InputLabel>
-            <Select
-              value={value || ''}
-              onChange={(e) => onChange(e.target.value)}
-              label={field.label}
-            >
-              <MenuItem value="">
-                <em>None</em>
-              </MenuItem>
-              {field.options?.map(option => (
-                <MenuItem key={option} value={option}>
-                  {option}
+          <Box>
+            <FormControl fullWidth required={field.required}>
+              <InputLabel>{field.label}</InputLabel>
+              <Select
+                label={field.label}
+                value={value || ''}
+                onChange={(e: any) => onChange(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>None</em>
                 </MenuItem>
-              ))}
-            </Select>
+                {field.options?.map(option => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             {field.description && (
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
                 {field.description}
               </Typography>
             )}
-          </FormControl>
+          </Box>
         );
 
       case 'multiselect':

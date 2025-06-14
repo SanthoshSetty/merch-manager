@@ -32,10 +32,44 @@ app.use(cors({
     'http://localhost:5183',
     'http://localhost:5184',
     'http://localhost:5185',
+    'https://merch-manager-frontend-361151780407.us-central1.run.app',
     ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : [])
   ]
 }));
 app.use(express.json());
+
+// Health check endpoint for Cloud Run
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    service: 'merch-manager-backend'
+  });
+});
+
+// Readiness check endpoint for Cloud Run
+app.get('/ready', (req, res) => {
+  res.status(200).json({ 
+    status: 'ready', 
+    timestamp: new Date().toISOString(),
+    service: 'merch-manager-backend'
+  });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Merch Manager Backend API',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    endpoints: [
+      'GET /health - Health check',
+      'GET /api/health - Detailed health check',
+      'GET /api/products - List products',
+      'PATCH /api/products/:id/fields - Update product fields'
+    ]
+  });
+});
 
 // Mount routes
 app.use('/api/competitive-pricing', competitivePricingRouter);
@@ -417,8 +451,9 @@ app.get('/api/health', async (req, res) => {
       timestamp: new Date().toISOString(),
       server: 'running',
       merchantId: process.env.GOOGLE_MERCHANT_ID,
-      hasCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
-      credentialsPath: process.env.GOOGLE_APPLICATION_CREDENTIALS
+      hasCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS || !!(process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.GCLOUD_PROJECT),
+      credentialsPath: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      authMethod: process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'service-account-key' : 'cloud-run-service-account'
     };
 
     // Test authentication

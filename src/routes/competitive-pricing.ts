@@ -30,10 +30,10 @@ router.post('/analyze', (req, res) => {
 
     console.log('🐍 Executing Python competitive pricing analysis script...');
     
-    // Path to the Python script
-    const scriptPath = path.join(__dirname, '..', 'scripts', 'competitive_pricing_analyzer.py');
+    // Path to the Python script - using absolute path to source directory
+    const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'competitive_pricing_analyzer.py');
     
-    // Execute the Python script
+    // Execute the Python script with environment variables
     const pythonProcess = spawn('python3', [
       scriptPath,
       '--product', productName,
@@ -41,7 +41,9 @@ router.post('/analyze', (req, res) => {
       '--country', country,
       '--currency', currency,
       '--api-key', geminiApiKey
-    ]);
+    ], {
+      env: { ...process.env }
+    });
 
     let stdout = '';
     let stderr = '';
@@ -57,19 +59,28 @@ router.post('/analyze', (req, res) => {
     }, 40000); // 40 seconds
 
     pythonProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
+      const chunk = data.toString();
+      stdout += chunk;
+      console.log('📤 Python stdout chunk:', chunk.substring(0, 200) + (chunk.length > 200 ? '...' : ''));
     });
 
     pythonProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
+      const chunk = data.toString();
+      stderr += chunk;
+      console.log('📤 Python stderr chunk:', chunk);
     });
 
     pythonProcess.on('close', (code) => {
       processCompleted = true;
       clearTimeout(timeout);
       
+      console.log('🐍 Python process closed with code:', code);
+      console.log('📝 Full stdout length:', stdout.length);
+      console.log('📝 Full stderr length:', stderr.length);
+      
       if (code !== 0) {
-        console.error('❌ Python script failed:', stderr);
+        console.error('❌ Python script failed with code:', code);
+        console.error('❌ Stderr content:', stderr);
         
         // Fallback to simulation if Python script fails
         console.log('🔄 Falling back to simulation mode...');
@@ -78,6 +89,9 @@ router.post('/analyze', (req, res) => {
 
       try {
         // Parse the JSON output from Python script
+        console.log('🔍 Attempting to parse JSON output...');
+        console.log('📄 Raw stdout (first 500 chars):', stdout.substring(0, 500));
+        
         const result = JSON.parse(stdout);
         
         console.log('✅ Python analysis completed successfully');
@@ -86,7 +100,8 @@ router.post('/analyze', (req, res) => {
         res.json(result);
       } catch (parseError) {
         console.error('❌ Failed to parse Python script output:', parseError);
-        console.log('Raw output:', stdout);
+        console.log('💾 Raw output length:', stdout.length);
+        console.log('💾 Raw output preview:', stdout.substring(0, 1000));
         
         // Fallback to simulation
         return generateFallbackPricingData(productName, brand, country, currency, res);

@@ -25,7 +25,7 @@ import {
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { apiClient } from '../config/api';
 
 interface Product {
   name: string;
@@ -61,7 +61,7 @@ export default function ProductListPage() {
       const params: any = { pageSize: 12 };
       if (pageToken) params.pageToken = pageToken;
       
-      const response = await axios.get('http://localhost:3001/api/products', { params });
+      const response = await apiClient.get('/api/products', { params });
       
       if (response.data.success) {
         setProducts(response.data.data.products || []);

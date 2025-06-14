@@ -26,7 +26,7 @@ import {
   Error as ErrorIcon,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { apiClient } from '../config/api';
 import ProductForm from './ProductForm';
 import FieldUpdateDashboard from './FieldUpdateDashboard';
 
@@ -68,7 +68,7 @@ export default function ProductDetailPage() {
     
     try {
       console.log('Loading product with ID:', productId);
-      const response = await axios.get(`http://localhost:3001/api/products/${encodeURIComponent(productId)}`);
+      const response = await apiClient.get(`/api/products/${encodeURIComponent(productId)}`);
       
       if (response.data.success) {
         console.log('Product loaded successfully:', response.data.data);
@@ -191,9 +191,9 @@ export default function ProductDetailPage() {
         {/* Product Overview Card */}
         <Card>
           <CardContent>
-            <Grid container spacing={3}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
               {/* Product Image */}
-              <Grid item xs={12} md={3}>
+              <Box sx={{ flex: { xs: '1', md: '0 0 25%' } }}>
                 <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                   {product.attributes.imageLink ? (
                     <Avatar
@@ -210,10 +210,10 @@ export default function ProductDetailPage() {
                     </Avatar>
                   )}
                 </Box>
-              </Grid>
+              </Box>
 
               {/* Product Info */}
-              <Grid item xs={12} md={9}>
+              <Box sx={{ flex: 1 }}>
                 <Stack spacing={2}>
                   <Box>
                     <Typography variant="h4" component="h1" gutterBottom>
@@ -276,8 +276,8 @@ export default function ProductDetailPage() {
                     )}
                   </Paper>
                 </Stack>
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </CardContent>
         </Card>
 

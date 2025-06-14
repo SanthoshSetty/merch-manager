@@ -26,7 +26,7 @@ import {
   Error as ErrorIcon,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { apiClient } from '../config/api';
 import ProductForm from './ProductForm';
 import FieldUpdateDashboard from './FieldUpdateDashboard';
 
@@ -68,7 +68,7 @@ export default function ProductDetailPage() {
     
     try {
       console.log('Loading product with ID:', productId);
-      const response = await axios.get(`http://localhost:3001/api/products/${encodeURIComponent(productId)}`);
+      const response = await apiClient.get(`/api/products/${encodeURIComponent(productId)}`);
       
       if (response.data.success) {
         console.log('Product loaded successfully:', response.data.data);

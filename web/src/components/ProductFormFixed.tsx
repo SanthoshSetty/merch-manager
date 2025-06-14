@@ -40,7 +40,7 @@ export default function ProductForm({ productId, initialData }: ProductFormProps
     console.log('Field updated successfully');
   });
 
-  const [debounceTimers, setDebounceTimers] = useState<Record<string, NodeJS.Timeout>>({});
+  const [debounceTimers, setDebounceTimers] = useState<Record<string, any>>({});
 
   const handleFieldChange = (fieldPath: string, value: any) => {
     // Update local state immediately
