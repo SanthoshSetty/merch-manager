@@ -66,7 +66,11 @@ app.get('/', (req, res) => {
       'GET /health - Health check',
       'GET /api/health - Detailed health check',
       'GET /api/products - List products',
-      'PATCH /api/products/:id/fields - Update product fields'
+      'PATCH /api/products/:id/fields - Update product fields',
+      'GET /api/ai-content - AI Content Generation API',
+      'POST /api/ai-content/analyze-product - Comprehensive AI product analysis',
+      'POST /api/ai-content/generate-field - Generate content for specific fields',
+      'GET /api/competitive-pricing - Competitive Pricing API'
     ]
   });
 });
@@ -226,10 +230,46 @@ app.get('/api/products', async (req, res) => {
     res.json({ success: true, data: result });
   } catch (error: any) {
     console.error('List products error:', error);
-    res.status(500).json({
+    
+    // Enhanced error handling for merchant center access issues
+    let errorMessage = 'Unable to retrieve products from Google Merchant Center';
+    let errorCode = error.code || 'LIST_PRODUCTS_ERROR';
+    let statusCode = 500;
+    let instructions = null;
+    
+    if (error.response?.status === 400) {
+      errorMessage = 'Google Merchant Center access denied. The service account may not have permission to access this merchant account.';
+      errorCode = 'MERCHANT_ACCESS_DENIED';
+      statusCode = 403;
+      instructions = {
+        title: 'Fix Required: Add Service Account to Google Merchant Center',
+        steps: [
+          'Go to https://merchants.google.com/',
+          'Select merchant account ID: 5591219286',
+          'Navigate to Settings → Account Access',
+          'Add user: merchant-api-service@neon-vigil-395120.iam.gserviceaccount.com',
+          'Grant "Admin" access level',
+          'Wait 5-10 minutes for changes to propagate'
+        ],
+        serviceAccount: 'merchant-api-service@neon-vigil-395120.iam.gserviceaccount.com',
+        merchantId: '5591219286'
+      };
+    } else if (error.response?.status === 401 || error.response?.status === 403) {
+      errorMessage = 'Authentication failed with Google Merchant API. Please check service account credentials.';
+      errorCode = 'AUTHENTICATION_ERROR';
+      statusCode = 401;
+    } else if (error.response?.status === 404) {
+      errorMessage = 'Merchant account not found. Please verify the merchant account ID is correct.';
+      errorCode = 'MERCHANT_NOT_FOUND';
+      statusCode = 404;
+    }
+    
+    res.status(statusCode).json({
       success: false,
-      error: error.message,
-      code: error.code || 'LIST_PRODUCTS_ERROR'
+      error: errorMessage,
+      code: errorCode,
+      originalError: error.message,
+      instructions: instructions
     });
   }
 });

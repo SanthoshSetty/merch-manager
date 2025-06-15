@@ -1,0 +1,72 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    run.googleapis.com/build-enable-automatic-updates: 'false'
+    run.googleapis.com/build-id: 0efcb900-c3d4-45fe-a9f1-e97f8618e1ec
+    run.googleapis.com/build-image-uri: us-central1-docker.pkg.dev/neon-vigil-395120/cloud-run-source-deploy/merch-manager-backend
+    run.googleapis.com/build-name: projects/361151780407/locations/us-central1/builds/0efcb900-c3d4-45fe-a9f1-e97f8618e1ec
+    run.googleapis.com/build-source-location: gs://run-sources-neon-vigil-395120-us-central1/services/merch-manager-backend/1749983932.583505-c467c66859f447d5896d86efc1e539d9.zip#1749983974268525
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+    run.googleapis.com/urls: '["https://merch-manager-backend-361151780407.us-central1.run.app","https://merch-manager-backend-hbo66mhwnq-uc.a.run.app"]'
+  labels:
+    cloud.googleapis.com/location: us-central1
+  name: merch-manager-backend
+  namespace: '361151780407'
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '10'
+        run.googleapis.com/client-name: gcloud
+        run.googleapis.com/client-version: 526.0.1
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/startup-cpu-boost: 'false'
+      labels:
+        client.knative.dev/nonce: zrbzyzbpov
+        run.googleapis.com/startupProbeType: Default
+    spec:
+      containerConcurrency: 100
+      containers:
+      - env:
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: gemini-api-key
+        - name: MERCHANT_ID
+          value: '5591219286'
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secrets/google-credentials.json
+        image: us-central1-docker.pkg.dev/neon-vigil-395120/cloud-run-source-deploy/merch-manager-backend@sha256:53db0a8f2a7e3a5de7cdfb32bc63aa51eddf42f5d9dda111805df5883fd9ec9c
+        name: merch-manager-backend-1
+        ports:
+        - containerPort: 8080
+          name: http1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        startupProbe:
+          failureThreshold: 1
+          periodSeconds: 240
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 240
+        volumeMounts:
+        - mountPath: /secrets
+          name: google-credentials
+          readOnly: true
+      serviceAccountName: merchant-api-service@neon-vigil-395120.iam.gserviceaccount.com
+      timeoutSeconds: 300
+      volumes:
+      - name: google-credentials
+        secret:
+          items:
+          - key: latest
+            path: google-credentials.json
+          secretName: google-credentials
+  traffic:
+  - latestRevision: true
+    percent: 100

@@ -24,6 +24,7 @@ import {
   AutoAwesome as AIIcon,
   OpenInNew as ExternalLinkIcon,
 } from '@mui/icons-material';
+import { apiClient } from '../config/api';
 
 interface AIEnhancedSelectProps {
   fieldName: string;
@@ -87,19 +88,9 @@ export const AIEnhancedSelect = memo<AIEnhancedSelectProps>(({
         requestBody.customInstructions = customInstructions.trim();
       }
 
-      const response = await fetch('/api/ai-content/generate-field', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await apiClient.post('/api/ai-content/generate-field', requestBody);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = response.data;
       
       if (result.success) {
         setLastGeneratedContent(result.content);
@@ -282,19 +273,9 @@ export const AIEnhancedSwitch = memo<AIEnhancedSwitchProps>(({
         requestBody.customInstructions = customInstructions.trim();
       }
 
-      const response = await fetch('/api/ai-content/generate-field', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await apiClient.post('/api/ai-content/generate-field', requestBody);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = response.data;
       
       if (result.success) {
         setLastGeneratedContent(result.content);

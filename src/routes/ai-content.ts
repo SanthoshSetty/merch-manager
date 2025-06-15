@@ -4,6 +4,79 @@ import path from 'path';
 
 const router = Router();
 
+// Health check and available endpoints for AI content
+router.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'AI Content Generation API',
+    endpoints: [
+      'POST /analyze-product - Comprehensive product analysis',
+      'POST /generate-field - Generate content for specific fields',
+      'GET /health - Health check'
+    ],
+    status: 'running',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Health check endpoint
+router.get('/health', (req, res) => {
+  const hasGeminiKey = !!process.env.GEMINI_API_KEY;
+  
+  res.json({
+    success: true,
+    status: 'healthy',
+    ai_enabled: hasGeminiKey,
+    fallback_mode: !hasGeminiKey,
+    timestamp: new Date().toISOString(),
+    message: hasGeminiKey ? 'AI integration active' : 'Running in fallback mode - set GEMINI_API_KEY for AI features'
+  });
+});
+
+// GET endpoint for generate-field to provide usage information
+router.get('/generate-field', (req, res) => {
+  res.status(405).json({
+    success: false,
+    error: 'Method Not Allowed',
+    message: 'This endpoint requires POST method',
+    expectedMethod: 'POST',
+    requiredFields: ['productName', 'brand', 'fieldName', 'fieldInstructions'],
+    optionalFields: ['productContext', 'customInstructions', 'country'],
+    example: {
+      method: 'POST',
+      url: '/api/ai-content/generate-field',
+      body: {
+        productName: 'Smartphone XYZ',
+        brand: 'TechBrand',
+        fieldName: 'title',
+        fieldInstructions: 'Create a compelling product title',
+        country: 'Global'
+      }
+    }
+  });
+});
+
+// GET endpoint for analyze-product to provide usage information
+router.get('/analyze-product', (req, res) => {
+  res.status(405).json({
+    success: false,
+    error: 'Method Not Allowed',
+    message: 'This endpoint requires POST method',
+    expectedMethod: 'POST',
+    requiredFields: ['productName', 'brand'],
+    optionalFields: ['country'],
+    example: {
+      method: 'POST',
+      url: '/api/ai-content/analyze-product',
+      body: {
+        productName: 'Smartphone XYZ',
+        brand: 'TechBrand',
+        country: 'Global'
+      }
+    }
+  });
+});
+
 // Comprehensive product analysis endpoint
 router.post('/analyze-product', (req, res) => {
   (async () => {
@@ -20,27 +93,18 @@ router.post('/analyze-product', (req, res) => {
         });
       }
 
-      // Check if we have a Gemini API key
-      const geminiApiKey = process.env.GEMINI_API_KEY;
-      
-      if (!geminiApiKey) {
-        console.log('⚠️ No GEMINI_API_KEY found, using fallback data');
-        return generateFallbackProductData(productName, brand, country, res);
-      }
-
       console.log('🐍 Executing AI comprehensive product analysis...');
       
       // Path to the Python script - using absolute path to source directory
       const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'ai_content_generator.py');
       
-      // Execute the Python script with environment variables
+      // Execute the Python script - API key will be retrieved from Secret Manager
       const pythonProcess = spawn('python3', [
         scriptPath,
         '--product', productName,
         '--brand', brand,
         '--country', country,
-        '--mode', 'comprehensive',
-        '--api-key', geminiApiKey
+        '--mode', 'comprehensive'
       ], {
         env: { ...process.env }
       });
@@ -132,7 +196,7 @@ router.post('/generate-field', (req, res) => {
       // Path to the Python script - using absolute path to source directory
       const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'ai_content_generator.py');
       
-      // Prepare arguments
+      // Prepare arguments - API key will be retrieved from Secret Manager
       const args = [
         scriptPath,
         '--product', productName,
@@ -140,8 +204,7 @@ router.post('/generate-field', (req, res) => {
         '--country', country,
         '--mode', 'field',
         '--field-name', fieldName,
-        '--field-instructions', fieldInstructions,
-        '--api-key', geminiApiKey
+        '--field-instructions', fieldInstructions
       ];
 
       // Add product context if provided

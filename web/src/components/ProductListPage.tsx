@@ -73,10 +73,19 @@ export default function ProductListPage() {
       }
     } catch (err: any) {
       console.error('Error loading products:', err);
-      if (err.response?.status === 500) {
-        setError('Backend connection established, but Google Merchant Center credentials need verification. Check that your service account has proper permissions.');
+      
+      // Check for specific error responses from the backend
+      if (err.response?.data?.instructions) {
+        const errorData = err.response.data;
+        const instructionsList = errorData.instructions.steps?.join('\n   • ') || '';
+        
+        setError(`${errorData.error}\n\n${errorData.instructions.title}:\n   • ${instructionsList}\n\nService Account: ${errorData.instructions.serviceAccount}\nMerchant ID: ${errorData.instructions.merchantId}`);
+      } else if (err.response?.status === 403 || err.response?.status === 400) {
+        setError('Google Merchant Center access denied. The service account may not have permission to access this merchant account. Please check the setup guide for instructions on adding the service account to your Merchant Center account.');
+      } else if (err.response?.status === 500) {
+        setError('Backend connection established, but Google Merchant Center integration needs configuration. Check that your service account has proper permissions.');
       } else {
-        setError('Unable to connect to backend. Make sure the server is running on port 3001.');
+        setError('Unable to connect to backend. Please check your internet connection and try again.');
       }
     } finally {
       setLoading(false);

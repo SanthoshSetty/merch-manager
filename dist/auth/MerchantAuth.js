@@ -4,9 +4,13 @@ exports.MerchantAuth = void 0;
 const google_auth_library_1 = require("google-auth-library");
 class MerchantAuth {
     constructor() {
+        // On Cloud Run, use the attached service account automatically
+        // This will use the merchant-api-service@neon-vigil-395120.iam.gserviceaccount.com
         this.auth = new google_auth_library_1.GoogleAuth({
-            scopes: [process.env.REQUIRED_SCOPES || 'https://www.googleapis.com/auth/content'],
-            keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+            scopes: [
+                'https://www.googleapis.com/auth/content'
+            ],
+            // Don't specify keyFilename - let it use the Cloud Run service account
         });
     }
     async getAccessToken() {

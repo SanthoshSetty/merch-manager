@@ -23,7 +23,7 @@ import {
   BatchPrediction as BatchIcon,
   PlayArrow as PlayIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
+import { apiClient } from '../config/api';
 
 interface BulkOperation {
   field: string;
@@ -89,7 +89,7 @@ export default function BulkFieldUpdatePanel({
         updateMask: `attributes.${op.field}`
       }));
 
-      const response = await axios.patch('http://localhost:3001/api/products/bulk-fields', {
+      const response = await apiClient.patch('/api/products/bulk-fields', {
         operations: bulkOperations
       });
 

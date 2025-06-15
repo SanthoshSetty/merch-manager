@@ -85,7 +85,7 @@ export default function ProductDetailPage() {
       } else if (err.response?.status === 500) {
         setError('Failed to load product. Please check your Google Merchant Center connection.');
       } else {
-        setError('Unable to connect to backend. Make sure the server is running.');
+        setError('Unable to connect to backend. Please check your internet connection and try again.');
       }
     } finally {
       setLoading(false);

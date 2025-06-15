@@ -26,10 +26,13 @@ FROM node:18-alpine AS production
 
 # Install Python and required packages
 RUN apk add --no-cache python3 py3-pip curl
-RUN pip3 install --break-system-packages google-generativeai requests
 
 # Create app directory
 WORKDIR /app
+
+# Copy requirements.txt and install Python dependencies
+COPY requirements.txt ./
+RUN pip3 install --break-system-packages -r requirements.txt
 
 # Copy built application
 COPY --from=base /app/dist ./dist

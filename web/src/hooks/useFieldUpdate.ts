@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
+import { apiClient } from '../config/api';
 
 interface FieldState {
   isUpdating: boolean;
@@ -32,7 +32,7 @@ export function useFieldUpdate(productId: string, onUpdate?: () => void): UseFie
     });
 
     try {
-      await axios.patch(`http://localhost:3001/api/products/${productId}/fields`, {
+      await apiClient.patch(`/api/products/${productId}/fields`, {
         updates: { [fieldPath]: value },
         updateMask: `attributes.${fieldPath}`
       });

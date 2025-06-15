@@ -59,6 +59,7 @@ import {
 import CustomFieldBuilder, { type CustomField } from './CustomFieldBuilder';
 import CustomFieldManager from './CustomFieldManager';
 import { useCustomFields } from '../hooks/useCustomFields';
+import { apiClient } from '../config/api';
 
 // AI-Enhanced Components (inline for now to avoid export issues)
 const AIEnhancedSelect = memo(({
@@ -99,19 +100,9 @@ const AIEnhancedSelect = memo(({
         requestBody.customInstructions = customInstructions.trim();
       }
 
-      const response = await fetch('/api/ai-content/generate-field', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await apiClient.post('/api/ai-content/generate-field', requestBody);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = response.data;
       
       if (result.success) {
         setLastGeneratedContent(result.content);
@@ -293,19 +284,9 @@ const AIEnhancedSwitch = memo(({
         requestBody.customInstructions = customInstructions.trim();
       }
 
-      const response = await fetch('/api/ai-content/generate-field', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await apiClient.post('/api/ai-content/generate-field', requestBody);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = response.data;
       
       if (result.success) {
         setLastGeneratedContent(result.content);
@@ -555,19 +536,9 @@ const AIEnhancedTextField = memo(({
         hasCustomInstructions: !!requestBody.customInstructions 
       });
 
-      const response = await fetch('/api/ai-content/generate-field', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await apiClient.post('/api/ai-content/generate-field', requestBody);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = response.data;
       console.log('🤖 AI Content Response:', { 
         success: result.success, 
         contentLength: result.content?.length, 
@@ -1071,23 +1042,13 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
     setAiGenerationError(null);
     
     try {
-      const response = await fetch('/api/ai-content/analyze-product', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productName: productData.title,
-          brand: productData.brand,
-          country: aiMarketCountry
-        }),
+      const response = await apiClient.post('/api/ai-content/analyze-product', {
+        productName: productData.title,
+        brand: productData.brand,
+        country: aiMarketCountry
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = response.data;
       
       if (result.success && result.data) {
         setComprehensiveAnalysisData(result.data);

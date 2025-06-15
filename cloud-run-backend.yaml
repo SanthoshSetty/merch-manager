@@ -36,6 +36,12 @@ spec:
           value: "https://www.googleapis.com/auth/content"
         - name: CORS_ORIGIN
           value: "https://merch-manager-frontend-PROJECT_ID.a.run.app"
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/secrets/google-credentials.json"
+        volumeMounts:
+        - name: google-credentials
+          mountPath: /secrets
+          readOnly: true
         resources:
           limits:
             cpu: "2"
@@ -43,3 +49,10 @@ spec:
           requests:
             cpu: "1"
             memory: "1Gi"
+      volumes:
+      - name: google-credentials
+        secret:
+          secretName: google-credentials
+          items:
+          - key: latest
+            path: google-credentials.json
