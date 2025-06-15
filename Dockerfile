@@ -39,6 +39,7 @@ COPY --from=base /app/dist ./dist
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/package.json ./
 COPY --from=base /app/src/scripts ./src/scripts
+COPY --from=base /app/src/routes ./src/routes
 COPY --from=base /app/credentials ./credentials
 
 # Create non-root user

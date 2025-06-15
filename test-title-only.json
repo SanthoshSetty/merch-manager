@@ -1,6 +1,0 @@
-{
-  "updates": {
-    "title": "UPDATED TITLE - Field preservation test"
-  },
-  "updateMask": "attributes.title"
-}

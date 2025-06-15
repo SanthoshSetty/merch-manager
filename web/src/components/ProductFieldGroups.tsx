@@ -976,24 +976,14 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
 
     try {
       // Call the backend endpoint for competitive pricing analysis
-      const response = await fetch('/api/competitive-pricing/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productName: productData.title,
-          brand: productData.brand,
-          country: competitivePricingCountry,
-          currency: competitivePricingCurrency,
-        }),
+      const response = await apiClient.post('/api/competitive-pricing/analyze', {
+        productName: productData.title,
+        brand: productData.brand,
+        country: competitivePricingCountry,
+        currency: competitivePricingCurrency,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = response.data;
       
       if (result.success && result.data) {
         setCompetitivePricingData(result.data);

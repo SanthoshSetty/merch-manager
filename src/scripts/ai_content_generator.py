@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI Content Generation Script using Google Generative AI API
+AI Content Generation Script using Google Gemini Grounding API
 This script generates comprehensive product information and field-specific content.
 """
 
@@ -10,150 +10,17 @@ import json
 import argparse
 import asyncio
 import re
+import requests
 from typing import List, Dict, Any
-import google.generativeai as genai
-from google.cloud import secretmanager
+from google import genai
+from google.genai import types
 
 class AIContentGenerator:
-    def __init__(self, api_key: str = None):
-        """Initialize the AI content generator with Google Generative AI API."""
-        if api_key:
-            self.api_key = api_key
-        else:
-            # Retrieve API key from Secret Manager
-            self.api_key = self._get_api_key_from_secret_manager()
-        
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
-    
-    def _get_api_key_from_secret_manager(self) -> str:
-        """Retrieve the Gemini API key from Google Secret Manager."""
-        try:
-            # Create the Secret Manager client
-            client = secretmanager.SecretManagerServiceClient()
-            
-            # Build the resource name of the secret version
-            project_id = "neon-vigil-395120"  # Your project ID
-            secret_id = "gemini-api-key"
-            version_id = "latest"
-            name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
-            
-            # Access the secret version
-            response = client.access_secret_version(request={"name": name})
-            
-            # Return the decoded secret
-            return response.payload.data.decode("UTF-8")
-        except Exception as e:
-            print(f"Error retrieving API key from Secret Manager: {e}")
-            raise
-    
-    def extract_grounded_sources(self, response) -> List[Dict[str, str]]:
-        """Extract grounded sources from Gemini response."""
-        sources = []
-        try:
-            # Check if response has candidates with grounding metadata
-            if hasattr(response, 'candidates') and response.candidates:
-                for candidate in response.candidates:
-                    if hasattr(candidate, 'grounding_metadata'):
-                        grounding_metadata = candidate.grounding_metadata
-                        
-                        # Extract web sources from grounding chunks
-                        if hasattr(grounding_metadata, 'grounding_chunks') and grounding_metadata.grounding_chunks:
-                            print(f"Found {len(grounding_metadata.grounding_chunks)} grounding chunks", file=sys.stderr)
-                            for chunk in grounding_metadata.grounding_chunks:
-                                if hasattr(chunk, 'web') and chunk.web:
-                                    web_source = chunk.web
-                                    title = getattr(web_source, 'title', 'Web Source').strip()
-                                    url = getattr(web_source, 'uri', 'N/A')
-                                    
-                                    # Add the grounded URL (these are the actual sources Gemini used)
-                                    if url != 'N/A' and url.startswith('http'):
-                                        sources.append({
-                                            'title': title if title else 'Web Source',
-                                            'url': url,
-                                            'type': 'grounded_source'
-                                        })
-                        
-                        # Also add Google Search as a reference if search entry point exists
-                        if hasattr(grounding_metadata, 'search_entry_point') and grounding_metadata.search_entry_point:
-                            sources.append({
-                                'title': 'Google Search',
-                                'url': 'https://www.google.com/search',
-                                'type': 'search_reference'
-                            })
-            
-            # Fallback sources if no grounding metadata found
-            if not sources:
-                sources = [
-                    {
-                        "title": "Google Search",
-                        "url": "https://www.google.com/search",
-                        "type": "search_reference"
-                    }
-                ]
-                        
-        except Exception as e:
-            print(f"Error extracting grounded sources: {e}", file=sys.stderr)
-            # Fallback sources
-            sources = [
-                {
-                    "title": "Google Search",
-                    "url": "https://www.google.com/search",
-                    "type": "search_reference"
-                }
-            ]
-        
-        print(f"Extracted {len(sources)} grounded sources total", file=sys.stderr)
-        return sources
-    
-    def create_comprehensive_analysis_prompt(self, product_name: str, brand: str, country: str = "Global") -> str:
-        """Create a prompt for comprehensive product analysis."""
-        return f"""
-Analyze the product "{brand} {product_name}" for the {country} market and provide comprehensive product information in JSON format.
-
-Please provide detailed information for the following fields:
-- title: SEO-optimized product title
-- description: Comprehensive product description (max 5000 characters)
-- brand: Brand name
-- category: Google product category
-- gtin: GTIN/UPC/EAN if known
-- mpn: Manufacturer part number if known
-- condition: Product condition (new/refurbished/used)
-- availability: Stock status (in_stock/out_of_stock/preorder/backorder)
-- age_group: Target age group (newborn/infant/toddler/kids/adult)
-- gender: Target gender (male/female/unisex)
-- size: Product size if applicable
-- color: Primary color
-- material: Primary material
-- pattern: Pattern or design if applicable
-- custom_label_0: Primary marketing label
-- custom_label_1: Secondary marketing label
-- custom_label_2: Third marketing label
-- custom_label_3: Fourth marketing label
-- custom_label_4: Fifth marketing label
-
-Return ONLY a valid JSON object with these fields. Use "N/A" for unknown fields.
-"""
-    
-    def create_field_specific_prompt(self, product_name: str, brand: str, field_name: str, field_instructions: str, product_context: Dict[str, Any] = None, custom_instructions: str = None, country: str = "Global") -> str:
-        """Create a prompt for specific field generation."""
-        context_str = ""
-        if product_context:
-            context_str = f"\nProduct context: {json.dumps(product_context, indent=2)}"
-        
-        custom_str = ""
-        if custom_instructions:
-            custom_str = f"\nCustom instructions: {custom_instructions}"
-        
-        return f"""
-Generate content for the field "{field_name}" for the product "{brand} {product_name}" targeting the {country} market.
-
-Field instructions: {field_instructions}
-{context_str}
-{custom_str}
-
-Please provide only the field content, not JSON format. Be concise and relevant.
-"""
+    def __init__(self, api_key: str):
+        """Initialize the AI content generator with Google Gemini API."""
+        self.api_key = api_key
+        self.client = genai.Client(api_key=api_key)
+        self.model = "gemini-2.0-flash-exp"
     
     def create_comprehensive_analysis_prompt(self, product_name: str, brand: str, country: str = "Global") -> str:
         """Create a prompt for comprehensive product analysis."""
@@ -190,51 +57,65 @@ Provide detailed information in JSON format with these fields:
 
 Return ONLY the JSON object, no additional text."""
 
-    def create_field_specific_prompt(self, product_name: str, brand: str, field_name: str, field_instructions: str, product_context: Dict[str, Any] = None, custom_instructions: str = None, country: str = "Global") -> str:
+    def create_field_specific_prompt(self, product_name: str, brand: str, field_name: str, field_instructions: str, product_context: Dict[str, Any] = None) -> str:
         """Create a prompt for specific field generation."""
         context_str = ""
         if product_context:
             context_str = f"\nProduct Context: {json.dumps(product_context, indent=2)}"
         
-        custom_instructions_str = ""
-        if custom_instructions:
-            custom_instructions_str = f"\nCustom Instructions: {custom_instructions}"
-        
         return f"""Generate content for a specific product field based on the field name and instructions.
 
 Product: {brand} {product_name}
-Market: {country}
 Field Name: {field_name}
-Field Instructions: {field_instructions}{context_str}{custom_instructions_str}
+Field Instructions: {field_instructions}{context_str}
 
 Based on the field name and instructions, generate appropriate content for this field. Consider:
 - Field type and expected format
 - Product characteristics and target audience
-- Marketing best practices for {country} market
+- Marketing best practices
 - SEO optimization
 - Compliance requirements
-{f"- Follow the custom instructions: {custom_instructions}" if custom_instructions else ""}
 
 Return ONLY the generated content for this field, no additional formatting or explanation."""
 
     async def get_comprehensive_product_info(self, product_name: str, brand: str, country: str = "Global") -> Dict[str, Any]:
-        """Get comprehensive product information using Google Gemini."""
+        """Get comprehensive product information using Google Gemini Grounding."""
         try:
             print(f"Analyzing product comprehensively: {brand} {product_name}", file=sys.stderr)
             
             prompt = self.create_comprehensive_analysis_prompt(product_name, brand, country)
             
-            print("Generating comprehensive product analysis...", file=sys.stderr)
-            response = self.model.generate_content(prompt)
+            # Create content with Google Search tool
+            contents = [
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_text(text=prompt),
+                    ],
+                ),
+            ]
+            
+            tools = [types.Tool(google_search=types.GoogleSearch())]
+            
+            generate_content_config = types.GenerateContentConfig(
+                tools=tools,
+                response_mime_type="text/plain",
+            )
+
+            print("Generating comprehensive product analysis with Google Search grounding...", file=sys.stderr)
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=generate_content_config,
+            )
             
             if not response.text:
                 raise Exception("Empty response from Gemini API")
-            
-            # Extract grounded sources
-            grounded_sources = self.extract_grounded_sources(response)
-            print(f"Extracted {len(grounded_sources)} grounded sources", file=sys.stderr)
                 
             print("Received comprehensive product analysis", file=sys.stderr)
+            
+            # Extract grounded sources from response
+            grounded_sources = self.extract_grounded_sources(response)
             
             # Parse JSON response
             try:
@@ -263,9 +144,8 @@ Return ONLY the generated content for this field, no additional formatting or ex
                         'productName': product_name,
                         'brand': brand,
                         'country': country,
-                        'source': 'Google Gemini API',
-                        'timestamp': '2025-06-15T00:00:00Z',
-                        'sources_count': len(grounded_sources)
+                        'source': 'Google Gemini with Search Grounding API',
+                        'timestamp': '2025-06-13T00:00:00Z'
                     }
                 }
                 
@@ -281,23 +161,40 @@ Return ONLY the generated content for this field, no additional formatting or ex
                 'code': 'GEMINI_API_ERROR'
             }
 
-    async def generate_field_content(self, product_name: str, brand: str, field_name: str, field_instructions: str, product_context: Dict[str, Any] = None, custom_instructions: str = None, country: str = "Global") -> Dict[str, Any]:
+    async def generate_field_content(self, product_name: str, brand: str, field_name: str, field_instructions: str, product_context: Dict[str, Any] = None) -> Dict[str, Any]:
         """Generate content for a specific field."""
         try:
-            print(f"Generating content for field: {field_name} (Market: {country})", file=sys.stderr)
-            if custom_instructions:
-                print(f"Using custom instructions: {custom_instructions[:100]}...", file=sys.stderr)
+            print(f"Generating content for field: {field_name}", file=sys.stderr)
             
-            prompt = self.create_field_specific_prompt(product_name, brand, field_name, field_instructions, product_context, custom_instructions, country)
+            prompt = self.create_field_specific_prompt(product_name, brand, field_name, field_instructions, product_context)
             
-            response = self.model.generate_content(prompt)
+            contents = [
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_text(text=prompt),
+                    ],
+                ),
+            ]
+            
+            tools = [types.Tool(google_search=types.GoogleSearch())]
+            
+            generate_content_config = types.GenerateContentConfig(
+                tools=tools,
+                response_mime_type="text/plain",
+            )
+
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=generate_content_config,
+            )
             
             if not response.text:
                 raise Exception("Empty response from Gemini API")
             
-            # Extract grounded sources
+            # Extract grounded sources from response
             grounded_sources = self.extract_grounded_sources(response)
-            print(f"Extracted {len(grounded_sources)} grounded sources for field {field_name}", file=sys.stderr)
             
             # Clean and return the generated content
             generated_content = response.text.strip()
@@ -315,10 +212,8 @@ Return ONLY the generated content for this field, no additional formatting or ex
                     'fieldName': field_name,
                     'productName': product_name,
                     'brand': brand,
-                    'source': 'Google Gemini API',
-                    'timestamp': '2025-06-15T00:00:00Z',
-                    'sources_count': len(grounded_sources),
-                    'custom_instructions_used': bool(custom_instructions)
+                    'source': 'Google Gemini with Search Grounding API',
+                    'timestamp': '2025-06-13T00:00:00Z'
                 }
             }
             
@@ -329,6 +224,53 @@ Return ONLY the generated content for this field, no additional formatting or ex
                 'error': str(e),
                 'code': 'FIELD_GENERATION_ERROR'
             }
+
+    def extract_grounded_sources(self, response):
+        """Extract grounded sources from Gemini API response."""
+        grounded_sources = []
+        
+        try:
+            # Check if response has candidates
+            if hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                
+                # Check if candidate has grounding_metadata
+                if hasattr(candidate, 'grounding_metadata') and candidate.grounding_metadata:
+                    grounding_metadata = candidate.grounding_metadata
+                    
+                    # Check if grounding_metadata has grounding_chunks
+                    if hasattr(grounding_metadata, 'grounding_chunks') and grounding_metadata.grounding_chunks:
+                        for chunk in grounding_metadata.grounding_chunks:
+                            source = {'title': 'N/A', 'url': 'N/A', 'type': 'unknown'}
+                            
+                            # Check for web chunk
+                            if hasattr(chunk, 'web') and chunk.web:
+                                web = chunk.web
+                                source['type'] = 'web'
+                                if hasattr(web, 'title') and web.title:
+                                    source['title'] = web.title
+                                if hasattr(web, 'uri') and web.uri:
+                                    source['url'] = web.uri
+                            
+                            # Check for retrieved_context chunk
+                            elif hasattr(chunk, 'retrieved_context') and chunk.retrieved_context:
+                                context = chunk.retrieved_context
+                                source['type'] = 'retrieved'
+                                if hasattr(context, 'title') and context.title:
+                                    source['title'] = context.title
+                                if hasattr(context, 'uri') and context.uri:
+                                    source['url'] = context.uri
+                            
+                            # Only add if we have at least a URL
+                            if source['url'] != 'N/A':
+                                grounded_sources.append(source)
+            
+            print(f"Extracted {len(grounded_sources)} grounded sources", file=sys.stderr)
+            return grounded_sources
+            
+        except Exception as e:
+            print(f"Error extracting grounded sources: {e}", file=sys.stderr)
+            return []
 
     def generate_fallback_product_data(self, product_name: str, brand: str, country: str) -> Dict[str, Any]:
         """Generate fallback product data when API fails."""
@@ -373,16 +315,18 @@ async def main():
         parser.add_argument('--mode', choices=['comprehensive', 'field'], required=True, help='Generation mode')
         parser.add_argument('--field-name', help='Field name for field-specific generation')
         parser.add_argument('--field-instructions', help='Instructions for field generation')
-        parser.add_argument('--custom-instructions', help='Custom user instructions for refinement')
         parser.add_argument('--product-context', help='JSON string of product context')
         parser.add_argument('--api-key', help='Google Gemini API key (or set GEMINI_API_KEY env var)')
         
         args = parser.parse_args()
         
-        # Get API key - either from argument, environment, or Secret Manager
+        # Get API key
         api_key = args.api_key or os.getenv('GEMINI_API_KEY')
+        if not api_key:
+            print("❌ Error: Google Gemini API key is required.", file=sys.stderr)
+            sys.exit(1)
         
-        # Initialize generator (will use Secret Manager if no API key provided)
+        # Initialize generator
         generator = AIContentGenerator(api_key)
         
         if args.mode == 'comprehensive':
@@ -403,7 +347,7 @@ async def main():
             
             result = await generator.generate_field_content(
                 args.product, args.brand, args.field_name, 
-                args.field_instructions, product_context, args.custom_instructions, args.country
+                args.field_instructions, product_context
             )
         
         # Output result as JSON

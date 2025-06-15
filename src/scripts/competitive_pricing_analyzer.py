@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Competitive Pricing Analysis Script using Google Generative AI API
+Competitive Pricing Analysis Script using Google Gemini API
 This script analyzes competitive pricing for products across different retailers.
 """
 
@@ -11,14 +11,15 @@ import argparse
 import asyncio
 import re
 from typing import List, Dict, Any
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 class CompetitivePricingAnalyzer:
     def __init__(self, api_key: str):
-        """Initialize the competitive pricing analyzer with Google Generative AI API."""
+        """Initialize the competitive pricing analyzer with Google Gemini API."""
         self.api_key = api_key
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.client = genai.Client(api_key=api_key)
+        self.model = 'gemini-2.0-flash-exp'
     
     def create_pricing_analysis_prompt(self, product_name: str, brand: str, country: str, currency: str) -> str:
         """Create a detailed prompt for competitive pricing analysis."""
@@ -38,21 +39,44 @@ class CompetitivePricingAnalyzer:
 Include 5-10 major retailers including official manufacturer or brand {brand} website of the product. Return grounded websites and current pricing where possible. Return ONLY the JSON array, no additional text or formatting."""
     
     async def analyze_pricing(self, product_name: str, brand: str, country: str, currency: str) -> Dict[str, Any]:
-        """Perform competitive pricing analysis using Google Generative AI."""
+        """Perform competitive pricing analysis using Google Gemini API with grounding."""
         try:
-            print(f"Querying Google Generative AI for competitive pricing data...", file=sys.stderr)
+            print(f"Querying Google Gemini API for competitive pricing data...", file=sys.stderr)
             
             # Create the analysis prompt
             prompt = self.create_pricing_analysis_prompt(product_name, brand, country, currency)
             
-            # Generate response
-            print("Generating content with Google Generative AI...", file=sys.stderr)
-            response = self.model.generate_content(prompt)
+            # Create content with Google Search tool
+            contents = [
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_text(text=prompt),
+                    ],
+                ),
+            ]
+            
+            tools = [types.Tool(google_search=types.GoogleSearch())]
+            
+            generate_content_config = types.GenerateContentConfig(
+                tools=tools,
+                response_mime_type="text/plain",
+            )
+
+            print("Generating content with Google Gemini and Search grounding...", file=sys.stderr)
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=generate_content_config,
+            )
             
             if not response.text:
-                raise Exception("Empty response from Generative AI")
+                raise Exception("Empty response from Gemini API")
                 
-            print("Received response from Generative AI", file=sys.stderr)
+            print("Received response from Gemini API", file=sys.stderr)
+            
+            # Extract grounded sources from response
+            grounded_sources = self.extract_grounded_sources(response)
             
             # Try to parse JSON from the response
             try:
@@ -103,14 +127,15 @@ Include 5-10 major retailers including official manufacturer or brand {brand} we
                 return {
                     'success': True,
                     'data': processed_data,
+                    'grounded_sources': grounded_sources,
                     'metadata': {
                         'productName': product_name,
                         'brand': brand,
                         'country': country,
                         'currency': currency,
                         'analyzedRetailers': len(processed_data),
-                        'timestamp': '2025-06-14T00:00:00Z',
-                        'source': 'Google Generative AI'
+                        'timestamp': '2025-06-16T00:00:00Z',
+                        'source': 'Google Gemini with Search Grounding API'
                     }
                 }
                 
@@ -129,6 +154,53 @@ Include 5-10 major retailers including official manufacturer or brand {brand} we
                 'code': 'GENERATIVE_AI_ERROR'
             }
     
+    def extract_grounded_sources(self, response):
+        """Extract grounded sources from Gemini API response."""
+        grounded_sources = []
+        
+        try:
+            # Check if response has candidates
+            if hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                
+                # Check if candidate has grounding_metadata
+                if hasattr(candidate, 'grounding_metadata') and candidate.grounding_metadata:
+                    grounding_metadata = candidate.grounding_metadata
+                    
+                    # Check if grounding_metadata has grounding_chunks
+                    if hasattr(grounding_metadata, 'grounding_chunks') and grounding_metadata.grounding_chunks:
+                        for chunk in grounding_metadata.grounding_chunks:
+                            source = {'title': 'N/A', 'url': 'N/A', 'type': 'unknown'}
+                            
+                            # Check for web chunk
+                            if hasattr(chunk, 'web') and chunk.web:
+                                web = chunk.web
+                                source['type'] = 'web'
+                                if hasattr(web, 'title') and web.title:
+                                    source['title'] = web.title
+                                if hasattr(web, 'uri') and web.uri:
+                                    source['url'] = web.uri
+                            
+                            # Check for retrieved_context chunk
+                            elif hasattr(chunk, 'retrieved_context') and chunk.retrieved_context:
+                                context = chunk.retrieved_context
+                                source['type'] = 'retrieved'
+                                if hasattr(context, 'title') and context.title:
+                                    source['title'] = context.title
+                                if hasattr(context, 'uri') and context.uri:
+                                    source['url'] = context.uri
+                            
+                            # Only add if we have at least a URL
+                            if source['url'] != 'N/A':
+                                grounded_sources.append(source)
+            
+            print(f"Extracted {len(grounded_sources)} grounded sources", file=sys.stderr)
+            return grounded_sources
+            
+        except Exception as e:
+            print(f"Error extracting grounded sources: {e}", file=sys.stderr)
+            return []
+
     def generate_fallback_data(self, product_name: str, brand: str, country: str, currency: str, response_text: str) -> Dict[str, Any]:
         """Generate fallback pricing data when JSON parsing fails."""
         print("Generating fallback pricing data...", file=sys.stderr)

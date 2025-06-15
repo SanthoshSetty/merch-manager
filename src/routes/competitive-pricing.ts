@@ -4,6 +4,19 @@ import path from 'path';
 
 const router = Router();
 
+// Health check and available endpoints for competitive pricing
+router.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Competitive Pricing API',
+    endpoints: [
+      'POST /analyze - Analyze competitive pricing for a product'
+    ],
+    status: 'running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Competitive pricing analysis endpoint
 router.post('/analyze', (req, res) => {
   (async () => {

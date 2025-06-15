@@ -19,25 +19,121 @@ spec:
         ports:
         - containerPort: 8080
         env:
+        # Application Environment
+        - name: NODE_ENV
+          value: "production"
+        - name: APP_NAME
+          value: "merch-manager-backend"
+        - name: APP_VERSION
+          value: "1.0.0"
+        
+        # Google Cloud Configuration
         - name: GOOGLE_CLOUD_PROJECT_ID
           value: "neon-vigil-395120"
+        - name: GOOGLE_CLOUD_REGION
+          value: "us-central1"
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/secrets/google-credentials.json"
+        
+        # Google Merchant Center Configuration
         - name: GOOGLE_MERCHANT_ID
           value: "5591219286"
-        - name: GEMINI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: gemini-api-key
-              key: latest
         - name: MERCHANT_API_BASE_URL
           value: "https://merchantapi.googleapis.com"
         - name: MERCHANT_API_VERSION
           value: "v1beta"
         - name: REQUIRED_SCOPES
           value: "https://www.googleapis.com/auth/content"
+        
+        # Google Gemini AI Configuration
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gemini-api-key
+              key: latest
+        - name: GEMINI_MODEL
+          value: "gemini-2.0-flash-exp"
+        - name: GEMINI_TIMEOUT
+          value: "30000"
+        
+        # Server Configuration
+        - name: PORT
+          value: "8080"
+        - name: HOST
+          value: "0.0.0.0"
         - name: CORS_ORIGIN
           value: "https://merch-manager-frontend-PROJECT_ID.a.run.app"
-        - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: "/secrets/google-credentials.json"
+        - name: CORS_CREDENTIALS
+          value: "true"
+        - name: REQUEST_TIMEOUT
+          value: "120000"
+        - name: REQUEST_SIZE_LIMIT
+          value: "10mb"
+        
+        # Logging Configuration
+        - name: LOG_LEVEL
+          value: "info"
+        - name: LOG_FORMAT
+          value: "combined"
+        - name: ENABLE_REQUEST_LOGGING
+          value: "true"
+        - name: ENABLE_ERROR_LOGGING
+          value: "true"
+        
+        # Security Configuration
+        - name: HELMET_ENABLED
+          value: "true"
+        - name: COMPRESSION_ENABLED
+          value: "true"
+        - name: RATE_LIMIT_ENABLED
+          value: "true"
+        - name: RATE_LIMIT_WINDOW_MS
+          value: "900000"
+        - name: RATE_LIMIT_MAX_REQUESTS
+          value: "100"
+        
+        # Feature Flags
+        - name: DEMO_MODE
+          value: "false"
+        - name: AI_CONTENT_ENABLED
+          value: "true"
+        - name: COMPETITIVE_PRICING_ENABLED
+          value: "true"
+        - name: REVIEWS_ENABLED
+          value: "true"
+        - name: ANALYTICS_ENABLED
+          value: "true"
+        
+        # Performance Configuration
+        - name: MAX_CONCURRENT_REQUESTS
+          value: "100"
+        - name: PYTHON_SCRIPT_TIMEOUT
+          value: "45000"
+        - name: CACHE_TTL
+          value: "3600"
+        
+        # Health Check Configuration
+        - name: HEALTH_CHECK_ENABLED
+          value: "true"
+        - name: READINESS_CHECK_ENABLED
+          value: "true"
+        
+        # Development/Debug Configuration
+        - name: DEBUG_MODE
+          value: "false"
+        - name: VERBOSE_LOGGING
+          value: "false"
+        - name: ENABLE_STACK_TRACES
+          value: "false"
+        
+        # External Service Configuration
+        - name: PYTHON_EXECUTABLE
+          value: "python3"
+        - name: AI_CONTENT_SCRIPT_PATH
+          value: "./src/scripts/ai_content_generator.py"
+        - name: COMPETITIVE_PRICING_SCRIPT_PATH
+          value: "./src/scripts/competitive_pricing_analyzer.py"
+        
         volumeMounts:
         - name: google-credentials
           mountPath: /secrets

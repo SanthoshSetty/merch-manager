@@ -15,7 +15,96 @@ spec:
       containers:
       - image: us-central1-docker.pkg.dev/PROJECT_ID/merch-manager/merch-manager-frontend:latest
         ports:
-        - containerPort: 80
+        - containerPort: 8080
+        env:
+        # Backend API Configuration
+        - name: VITE_API_BASE_URL
+          value: "https://merch-manager-backend-361151780407.us-central1.run.app"
+        - name: VITE_API_TIMEOUT
+          value: "30000"
+        - name: VITE_REQUEST_TIMEOUT
+          value: "120000"
+        
+        # Application Configuration
+        - name: VITE_APP_NAME
+          value: "Merch Manager"
+        - name: VITE_APP_VERSION
+          value: "1.0.0"
+        - name: VITE_ENVIRONMENT
+          value: "production"
+        - name: VITE_BUILD_TIMESTAMP
+          value: "1749970740"
+        
+        # Google Cloud Configuration
+        - name: VITE_GOOGLE_CLOUD_PROJECT_ID
+          value: "neon-vigil-395120"
+        - name: VITE_GOOGLE_CLOUD_REGION
+          value: "us-central1"
+        - name: VITE_GOOGLE_MERCHANT_ID
+          value: "5591219286"
+        
+        # Feature Flags
+        - name: VITE_ENABLE_AI_FEATURES
+          value: "true"
+        - name: VITE_ENABLE_COMPETITIVE_PRICING
+          value: "true"
+        - name: VITE_ENABLE_REVIEWS
+          value: "true"
+        - name: VITE_ENABLE_CUSTOM_FIELDS
+          value: "true"
+        - name: VITE_ENABLE_GROUNDED_SOURCES
+          value: "true"
+        - name: VITE_ENABLE_BULK_OPERATIONS
+          value: "true"
+        - name: VITE_ENABLE_ANALYTICS
+          value: "true"
+        
+        # UI Configuration
+        - name: VITE_THEME_MODE
+          value: "light"
+        - name: VITE_ENABLE_DARK_MODE
+          value: "true"
+        - name: VITE_PAGINATION_SIZE
+          value: "25"
+        - name: VITE_MAX_FILE_SIZE
+          value: "10485760"
+        - name: VITE_ALLOWED_FILE_TYPES
+          value: "jpg,jpeg,png,gif,webp"
+        
+        # Performance Configuration
+        - name: VITE_CACHE_TIMEOUT
+          value: "300000"
+        - name: VITE_DEBOUNCE_DELAY
+          value: "500"
+        - name: VITE_AUTO_SAVE_INTERVAL
+          value: "30000"
+        
+        # Debug Configuration (disabled in production)
+        - name: VITE_DEBUG_MODE
+          value: "false"
+        - name: VITE_VERBOSE_LOGGING
+          value: "false"
+        - name: VITE_ENABLE_CONSOLE_LOGS
+          value: "false"
+        
+        # External Services
+        - name: VITE_GOOGLE_ANALYTICS_ID
+          value: ""
+        - name: VITE_SENTRY_DSN
+          value: ""
+        
+        # URLs and Links
+        - name: VITE_DOCUMENTATION_URL
+          value: "https://developers.google.com/merchant/api"
+        - name: VITE_SUPPORT_EMAIL
+          value: "support@merchmanager.com"
+        - name: VITE_FEEDBACK_URL
+          value: "https://forms.google.com/feedback"
+        - name: VITE_MERCHANT_CENTER_URL
+          value: "https://merchants.google.com/mc/accounts/5591219286"
+        - name: VITE_MERCHANT_SUPPORT_URL
+          value: "https://support.google.com/merchants"
+        
         resources:
           limits:
             cpu: "1"

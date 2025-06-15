@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { ProductsClientFixed as ProductsClient } from './modules/products/ProductsClientFixed';
 import { ReviewsClient } from './modules/reviews/ReviewsClient';
@@ -12,38 +13,120 @@ import aiContentRouter from './routes/ai-content';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(helmet());
-app.use(compression());
+// Environment configuration with defaults
+const config = {
+  // Server
+  PORT: process.env.PORT || 3001,
+  HOST: process.env.HOST || '0.0.0.0',
+  NODE_ENV: process.env.NODE_ENV || 'development',
+  APP_NAME: process.env.APP_NAME || 'merch-manager-backend',
+  APP_VERSION: process.env.APP_VERSION || '1.0.0',
+  
+  // CORS
+  CORS_ORIGIN: process.env.CORS_ORIGIN,
+  CORS_CREDENTIALS: process.env.CORS_CREDENTIALS === 'true',
+  
+  // Request handling
+  REQUEST_TIMEOUT: parseInt(process.env.REQUEST_TIMEOUT || '120000'),
+  REQUEST_SIZE_LIMIT: process.env.REQUEST_SIZE_LIMIT || '10mb',
+  
+  // Security
+  HELMET_ENABLED: process.env.HELMET_ENABLED !== 'false',
+  COMPRESSION_ENABLED: process.env.COMPRESSION_ENABLED !== 'false',
+  RATE_LIMIT_ENABLED: process.env.RATE_LIMIT_ENABLED === 'true',
+  RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
+  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+  
+  // Logging
+  LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+  ENABLE_REQUEST_LOGGING: process.env.ENABLE_REQUEST_LOGGING === 'true',
+  ENABLE_ERROR_LOGGING: process.env.ENABLE_ERROR_LOGGING !== 'false',
+  
+  // Feature flags
+  DEMO_MODE: process.env.DEMO_MODE === 'true',
+  AI_CONTENT_ENABLED: process.env.AI_CONTENT_ENABLED !== 'false',
+  COMPETITIVE_PRICING_ENABLED: process.env.COMPETITIVE_PRICING_ENABLED !== 'false',
+  REVIEWS_ENABLED: process.env.REVIEWS_ENABLED !== 'false',
+  
+  // Debug
+  DEBUG_MODE: process.env.DEBUG_MODE === 'true',
+  VERBOSE_LOGGING: process.env.VERBOSE_LOGGING === 'true'
+};
+
+// Logging middleware
+if (config.ENABLE_REQUEST_LOGGING) {
+  app.use((req, res, next) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${req.method} ${req.path} - ${req.ip}`);
+    next();
+  });
+}
+
+// Security middleware
+if (config.HELMET_ENABLED) {
+  app.use(helmet());
+}
+
+if (config.COMPRESSION_ENABLED) {
+  app.use(compression());
+}
+
+// Rate limiting
+if (config.RATE_LIMIT_ENABLED) {
+  const limiter = rateLimit({
+    windowMs: config.RATE_LIMIT_WINDOW_MS,
+    max: config.RATE_LIMIT_MAX_REQUESTS,
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use(limiter);
+}
+
+// CORS configuration
+const corsOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+  'http://localhost:5178',
+  'http://localhost:5179',
+  'http://localhost:5180',
+  'http://localhost:5181',
+  'http://localhost:5182',
+  'http://localhost:5183',
+  'http://localhost:5184',
+  'http://localhost:5185',
+  'https://merch-manager-frontend-361151780407.us-central1.run.app',
+  ...(config.CORS_ORIGIN ? [config.CORS_ORIGIN] : [])
+];
+
 app.use(cors({ 
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:5176',
-    'http://localhost:5177',
-    'http://localhost:5178',
-    'http://localhost:5179',
-    'http://localhost:5180',
-    'http://localhost:5181',
-    'http://localhost:5182',
-    'http://localhost:5183',
-    'http://localhost:5184',
-    'http://localhost:5185',
-    'https://merch-manager-frontend-361151780407.us-central1.run.app',
-    ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : [])
-  ]
+  origin: corsOrigins,
+  credentials: config.CORS_CREDENTIALS
 }));
-app.use(express.json());
+
+// Body parsing with size limits
+app.use(express.json({ limit: config.REQUEST_SIZE_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: config.REQUEST_SIZE_LIMIT }));
+
+// Request timeout middleware
+app.use((req, res, next) => {
+  req.setTimeout(config.REQUEST_TIMEOUT);
+  res.setTimeout(config.REQUEST_TIMEOUT);
+  next();
+});
 
 // Health check endpoint for Cloud Run
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'healthy', 
     timestamp: new Date().toISOString(),
-    service: 'merch-manager-backend'
+    service: config.APP_NAME,
+    version: config.APP_VERSION,
+    environment: config.NODE_ENV
   });
 });
 
