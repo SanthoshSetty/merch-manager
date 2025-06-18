@@ -31,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../config/api';
+import { classifyOfficialWebsite } from '../utils/officialWebsiteClassifier';
 
 // Country and currency mappings
 const countries = [
@@ -87,31 +88,22 @@ const CompetitiveAnalysisPage: React.FC = () => {
     setCurrency(currencyMap[selectedCountry] || 'USD');
   };
 
-  // Check if a retailer/URL is an official brand website
+  // Enhanced function to check if a retailer/URL is an official brand website
   const isOfficialWebsite = (retailer: string, url: string, brandName: string): boolean => {
-    if (!retailer || !url || !brandName) return false;
+    const result = classifyOfficialWebsite(retailer, url, brandName);
     
-    const retailerLower = retailer.toLowerCase();
-    const urlLower = url.toLowerCase();
-    const brandLower = brandName.toLowerCase();
+    // Log detailed classification for debugging
+    console.log('🔍 Official Website Classification:', {
+      retailer,
+      brand: brandName,
+      url,
+      isOfficial: result.isOfficial,
+      confidence: result.confidence,
+      matchType: result.matchType,
+      details: result.details
+    });
     
-    // Check if retailer name suggests it's official
-    const isOfficialByName = (
-      retailerLower.includes('official') ||
-      retailerLower.includes(`${brandLower} official`) ||
-      retailerLower === brandLower ||
-      retailerLower === `${brandLower} store`
-    );
-    
-    // Check if URL is brand's official domain
-    const isOfficialByUrl = (
-      urlLower.includes(`${brandLower}.com`) ||
-      urlLower.includes(`www.${brandLower}.com`) ||
-      urlLower.includes(`${brandLower}.net`) ||
-      urlLower.includes(`${brandLower}.org`)
-    );
-    
-    return isOfficialByName || isOfficialByUrl;
+    return result.isOfficial;
   };
 
   // Analyze competition function

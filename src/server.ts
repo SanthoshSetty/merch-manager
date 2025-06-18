@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import { ProductsClientFixed as ProductsClient } from './modules/products/ProductsClientFixed';
+import { ProductsClient } from './modules/products/ProductsClient';
 import { ReviewsClient } from './modules/reviews/ReviewsClient';
 import { MerchantAuth } from './auth/MerchantAuth';
 import competitivePricingRouter from './routes/competitive-pricing';
@@ -687,6 +687,6 @@ function generateUpdateMask(updates: any): string {
   return paths.join(',');
 }
 
-app.listen(PORT, () => {
-  console.log(`🚀 Merchant API Server running on port ${PORT}`);
+app.listen(config.PORT, () => {
+  console.log(`🚀 Merchant API Server running on port ${config.PORT}`);
 });

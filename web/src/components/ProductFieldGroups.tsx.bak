@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from 'react';
+import { memo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -60,7 +60,6 @@ import CustomFieldBuilder, { type CustomField } from './CustomFieldBuilder';
 import CustomFieldManager from './CustomFieldManager';
 import { useCustomFields } from '../hooks/useCustomFields';
 import { apiClient } from '../config/api';
-import { classifyOfficialWebsite } from '../utils/officialWebsiteClassifier';
 
 // AI-Enhanced Components (inline for now to avoid export issues)
 const AIEnhancedSelect = memo(({
@@ -78,7 +77,6 @@ const AIEnhancedSelect = memo(({
   const [customInstructions, setCustomInstructions] = useState('');
   const [lastGeneratedContent, setLastGeneratedContent] = useState('');
   const [groundedSources, setGroundedSources] = useState<any[]>([]);
-  const [hasGenerated, setHasGenerated] = useState(false);
 
   const generateContent = async (useCustomInstructions = false) => {
     if (!productData.title || !productData.brand) {
@@ -109,10 +107,6 @@ const AIEnhancedSelect = memo(({
       if (result.success) {
         setLastGeneratedContent(result.content);
         setGroundedSources(result.grounded_sources || []);
-        console.log('🔍 [AIEnhancedSelect] Field generation - Grounded sources received:', result.grounded_sources);
-        console.log('🔍 [AIEnhancedSelect] Field generation - Sources count:', result.grounded_sources?.length || 0);
-        console.log('🔍 [AIEnhancedSelect] Field generation - Raw API response:', result);
-        setHasGenerated(true);
         
         if (useCustomInstructions) {
           onFieldChange(fieldName, result.content);
@@ -132,14 +126,8 @@ const AIEnhancedSelect = memo(({
   };
 
   const acceptGeneration = () => {
-    console.log('🔍 [AIEnhancedSelect] Accepting generation - Sources before:', groundedSources);
-    console.log('🔍 [AIEnhancedSelect] Accepting generation - Sources count:', groundedSources.length);
-    console.log('🔍 [AIEnhancedSelect] Accepting generation - lastGeneratedContent:', lastGeneratedContent);
     onFieldChange(fieldName, lastGeneratedContent);
     setShowRefinement(false);
-    setHasGenerated(true);
-    console.log('🔍 [AIEnhancedSelect] Accepting generation - hasGenerated set to true');
-    console.log('🔍 [AIEnhancedSelect] Accepting generation - Final state check - hasGenerated:', true, 'showRefinement:', false, 'sourcesLength:', groundedSources.length);
   };
 
   const isGenerating = aiGenerating[fieldName];
@@ -207,7 +195,7 @@ const AIEnhancedSelect = memo(({
                       key={index}
                       label={source.title || `Source ${index + 1}`}
                       component={Link}
-                      href={source.url || source.uri}
+                      href={source.uri}
                       target="_blank"
                       clickable
                       icon={<OpenInNew />}
@@ -254,23 +242,6 @@ const AIEnhancedSelect = memo(({
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Sources indicator when content is applied */}
-      {hasGenerated && !showRefinement && groundedSources && groundedSources.length > 0 && (
-        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Chip 
-            icon={<PublicIcon />}
-            label={`AI-generated from ${groundedSources.length} source${groundedSources.length !== 1 ? 's' : ''}`}
-            size="small"
-            variant="outlined"
-            color="primary"
-            sx={{ fontSize: '0.7rem' }}
-          />
-          <Typography variant="caption" color="text.secondary">
-            (Market: {country})
-          </Typography>
-        </Box>
-      )}
     </Box>
   );
 });
@@ -290,7 +261,6 @@ const AIEnhancedSwitch = memo(({
   const [lastGeneratedContent, setLastGeneratedContent] = useState('');
   const [predictedValue, setPredictedValue] = useState<boolean | null>(null);
   const [groundedSources, setGroundedSources] = useState<any[]>([]);
-  const [hasGenerated, setHasGenerated] = useState(false);
 
   const generateContent = async (useCustomInstructions = false) => {
     if (!productData.title || !productData.brand) {
@@ -321,10 +291,6 @@ const AIEnhancedSwitch = memo(({
       if (result.success) {
         setLastGeneratedContent(result.content);
         setGroundedSources(result.grounded_sources || []);
-        console.log('🔍 [AIEnhancedSwitch] Field generation - Grounded sources received:', result.grounded_sources);
-        console.log('🔍 [AIEnhancedSwitch] Field generation - Sources count:', result.grounded_sources?.length || 0);
-        console.log('🔍 [AIEnhancedSwitch] Field generation - Raw API response:', result);
-        setHasGenerated(true);
         
         // Convert AI response to boolean
         const booleanValue = convertToBooleanValue(result.content);
@@ -366,7 +332,6 @@ const AIEnhancedSwitch = memo(({
   const acceptGeneration = () => {
     onFieldChange(fieldName, predictedValue);
     setShowRefinement(false);
-    setHasGenerated(true); // Keep track that this field has been generated
   };
 
   const isGenerating = aiGenerating[fieldName];
@@ -433,7 +398,7 @@ const AIEnhancedSwitch = memo(({
                       key={index}
                       label={source.title || `Source ${index + 1}`}
                       component={Link}
-                      href={source.url || source.uri}
+                      href={source.uri}
                       target="_blank"
                       clickable
                       icon={<OpenInNew />}
@@ -480,23 +445,6 @@ const AIEnhancedSwitch = memo(({
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Sources indicator when content is applied */}
-      {hasGenerated && !showRefinement && groundedSources && groundedSources.length > 0 && (
-        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Chip 
-            icon={<PublicIcon />}
-            label={`AI-generated from ${groundedSources.length} source${groundedSources.length !== 1 ? 's' : ''}`}
-            size="small"
-            variant="outlined"
-            color="primary"
-            sx={{ fontSize: '0.7rem' }}
-          />
-          <Typography variant="caption" color="text.secondary">
-            (Market: {country})
-          </Typography>
-        </Box>
-      )}
     </Box>
   );
 });
@@ -560,17 +508,6 @@ const AIEnhancedTextField = memo(({
   const [groundedSources, setGroundedSources] = useState<any[]>([]);
   const [hasGenerated, setHasGenerated] = useState(false);
 
-  // Debug effect to track state changes
-  useEffect(() => {
-    console.log('🔍 [AIEnhancedTextField] State changed:', {
-      fieldName,
-      hasGenerated,
-      showRefinement,
-      sourcesCount: groundedSources?.length || 0,
-      lastGeneratedContentLength: lastGeneratedContent?.length || 0
-    });
-  }, [fieldName, hasGenerated, showRefinement, groundedSources, lastGeneratedContent]);
-
   const generateContent = async (useCustomInstructions = false) => {
     if (!productData.title || !productData.brand) {
       alert('Please fill in product title and brand first');
@@ -612,19 +549,7 @@ const AIEnhancedTextField = memo(({
       if (result.success) {
         setLastGeneratedContent(result.content);
         setGroundedSources(result.grounded_sources || []);
-        console.log('🔍 [AIEnhancedTextField] Field generation - Grounded sources received:', result.grounded_sources);
-        console.log('🔍 [AIEnhancedTextField] Field generation - Sources count:', result.grounded_sources?.length || 0);
-        console.log('🔍 [AIEnhancedTextField] Field generation - Raw API response:', result);
         setHasGenerated(true);
-        
-        // Store in localStorage for debugging
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(`debug_sources_${fieldName}`, JSON.stringify({
-            sources: result.grounded_sources || [],
-            content: result.content,
-            timestamp: Date.now()
-          }));
-        }
         
         if (useCustomInstructions) {
           // Apply directly when using custom instructions
@@ -646,14 +571,8 @@ const AIEnhancedTextField = memo(({
   };
 
   const acceptGeneration = () => {
-    console.log('🔍 [AIEnhancedTextField] Accepting generation - Sources before:', groundedSources);
-    console.log('🔍 [AIEnhancedTextField] Accepting generation - Sources count:', groundedSources.length);
-    console.log('🔍 [AIEnhancedTextField] Accepting generation - lastGeneratedContent:', lastGeneratedContent);
     onFieldChange(fieldName, lastGeneratedContent);
     setShowRefinement(false);
-    setHasGenerated(true);
-    console.log('🔍 [AIEnhancedTextField] Accepting generation - hasGenerated set to true');
-    console.log('🔍 [AIEnhancedTextField] Accepting generation - Final state check - hasGenerated:', true, 'showRefinement:', false, 'sourcesLength:', groundedSources.length);
   };
 
   const refineWithCustomInstructions = () => {
@@ -806,59 +725,14 @@ const AIEnhancedTextField = memo(({
           {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (
             <Box sx={{ mt: 1, p: 1, bgcolor: 'warning.50', borderRadius: 1, fontSize: '0.7rem' }}>
               <Typography variant="caption" color="text.secondary">
-                Debug: Country={country}, Sources={groundedSources?.length || 0}, HasGenerated={hasGenerated}, ShowRefinement={showRefinement}
+                Debug: Country={country}, Sources={groundedSources?.length || 0}, HasGenerated={hasGenerated}
               </Typography>
-              {groundedSources && groundedSources.length > 0 && (
-                <Box sx={{ mt: 1 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    Sources Detail:
-                  </Typography>
-                  {groundedSources.map((source, idx) => (
-                    <Typography key={idx} variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.6rem' }}>
-                      {idx + 1}. {source.title || 'No title'} - {source.url || source.uri || 'No URL'}
-                    </Typography>
-                  ))}
-                </Box>
-              )}
             </Box>
           )}
         </Box>
       )}
 
-      {/* Sources indicator when content is applied - Enhanced visibility for debugging */}
-      {(() => {
-        console.log('🔍 [AIEnhancedTextField] Sources indicator render check:', { hasGenerated, showRefinement, sourcesCount: groundedSources?.length, fieldName });
-        return null;
-      })()}
-      
-      {/* Debugging section - Always show if sources exist */}
-      {typeof window !== 'undefined' && window.location.hostname === 'localhost' && groundedSources && groundedSources.length > 0 && (
-        <Box sx={{ mt: 1, p: 2, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.main' }}>
-          <Typography variant="caption" color="info.dark" sx={{ fontWeight: 'bold' }}>
-            🔍 DEBUG: Grounded Sources Available ({groundedSources.length})
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            hasGenerated: {hasGenerated ? 'true' : 'false'} | showRefinement: {showRefinement ? 'true' : 'false'}
-          </Typography>
-        </Box>
-      )}
-      
-      {/* LocalStorage Debug Info */}
-      {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (() => {
-        const stored = localStorage.getItem(`debug_sources_${fieldName}`);
-        if (stored) {
-          const data = JSON.parse(stored);
-          return (
-            <Box sx={{ mt: 1, p: 1, bgcolor: 'warning.50', borderRadius: 1, fontSize: '0.7rem' }}>
-              <Typography variant="caption" color="text.secondary">
-                📦 LocalStorage: {data.sources?.length || 0} sources stored
-              </Typography>
-            </Box>
-          );
-        }
-        return null;
-      })()}
-      
+      {/* Sources indicator when content is applied */}
       {hasGenerated && !showRefinement && groundedSources && groundedSources.length > 0 && (
         <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
           <Chip 
@@ -872,33 +746,6 @@ const AIEnhancedTextField = memo(({
           <Typography variant="caption" color="text.secondary">
             (Market: {country})
           </Typography>
-        </Box>
-      )}
-      
-      {/* FORCE SHOW SOURCES FOR DEBUGGING - Remove after debugging */}
-      {typeof window !== 'undefined' && window.location.hostname === 'localhost' && groundedSources && groundedSources.length > 0 && (
-        <Box sx={{ mt: 1, p: 1, bgcolor: 'success.50', borderRadius: 1, border: '1px solid', borderColor: 'success.main' }}>
-          <Typography variant="caption" color="success.dark" sx={{ fontWeight: 'bold', display: 'block' }}>
-            🚀 FORCE SHOW: {groundedSources.length} Grounded Sources
-          </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1 }}>
-            {groundedSources.map((source, index) => (
-              <Chip
-                key={index}
-                label={source.title || `Source ${index + 1}`}
-                component={source.url && source.url !== 'N/A' ? 'a' : 'div'}
-                href={source.url && source.url !== 'N/A' ? source.url : undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                clickable={source.url && source.url !== 'N/A'}
-                icon={<ExternalLinkIcon sx={{ fontSize: 14 }} />}
-                variant="outlined"
-                color="success"
-                size="small"
-                sx={{ fontSize: '0.7rem' }}
-              />
-            ))}
-          </Stack>
         </Box>
       )}
     </Box>
@@ -1003,7 +850,6 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
   const [comprehensiveAnalysisLoading, setComprehensiveAnalysisLoading] = useState(false);
   const [comprehensiveAnalysisData, setComprehensiveAnalysisData] = useState<any>(null);
   const [aiMarketCountry, setAiMarketCountry] = useState('Singapore');
-  const [groundedSources, setGroundedSources] = useState<any[]>([]);
 
   // Country and currency options
   const countryOptions = [
@@ -1108,22 +954,32 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
   //   { value: 'COP', label: 'COP - Colombian Peso' },
   // ];
 
-  // Enhanced helper function to detect if a retailer is an official website
+  // Helper function to detect if a retailer is an official website
   const isOfficialWebsite = (retailerName: string, url: string, brand: string) => {
-    const result = classifyOfficialWebsite(retailerName, url, brand);
+    if (!retailerName || !brand) return false;
     
-    // Log detailed classification for debugging
-    console.log('🔍 Enhanced Official Website Classification (ProductFieldGroups):', {
-      retailer: retailerName,
-      brand: brand,
-      url: url,
-      isOfficial: result.isOfficial,
-      confidence: result.confidence,
-      matchType: result.matchType,
-      details: result.details
-    });
+    const retailerLower = retailerName.toLowerCase();
+    const brandLower = brand.toLowerCase();
+    const urlLower = url?.toLowerCase() || '';
     
-    return result.isOfficial;
+    // Check if retailer name contains "official", "store", or brand name
+    const isOfficialByName = (
+      retailerLower.includes('official') ||
+      retailerLower.includes(`${brandLower} store`) ||
+      retailerLower.includes(`${brandLower} official`) ||
+      retailerLower === brandLower ||
+      retailerLower === `${brandLower} store`
+    );
+    
+    // Check if URL is brand's official domain
+    const isOfficialByUrl = (
+      urlLower.includes(`${brandLower}.com`) ||
+      urlLower.includes(`www.${brandLower}.com`) ||
+      urlLower.includes(`${brandLower}.net`) ||
+      urlLower.includes(`${brandLower}.org`)
+    );
+    
+    return isOfficialByName || isOfficialByUrl;
   };
 
   // Competitive pricing analysis function
@@ -1204,14 +1060,7 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
       const result = response.data;
       
       if (result.success && result.data) {
-        console.log('Full API Response:', result);
-        console.log('Grounded Sources in response:', result.grounded_sources);
-        console.log('Sources array length:', result.grounded_sources?.length || 0);
-        
         setComprehensiveAnalysisData(result.data);
-        setGroundedSources(result.grounded_sources || []);
-        console.log('Comprehensive Analysis Sources set to state:', result.grounded_sources);
-        console.log('🚀 State after setting - groundedSources should now be:', result.grounded_sources || []);
         
         // Auto-fill multiple fields from comprehensive analysis
         const fieldsToUpdate = [
@@ -1315,12 +1164,11 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
         </Accordion>
 
         {/* AI Content Generation Group */}
-        <Accordion defaultExpanded>
+        <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <BrainIcon color="primary" />
-              <Typography variant="h6">🤖 AI Content Generation</Typography>
-              <Chip label="Generate All Fields" size="small" color="secondary" variant="outlined" />
+              <Typography variant="h6">AI Content Generation</Typography>
             </Box>
           </AccordionSummary>
           <AccordionDetails>
@@ -1383,101 +1231,6 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
                   />
                 )}
               </Box>
-
-              <Alert severity="info" sx={{ mt: 1 }}>
-                <Typography variant="body2">
-                  💡 <strong>Tip:</strong> Use real product names (e.g., "iPhone 15 Pro", "Nike Air Max") for the AI to find and display relevant sources.
-                </Typography>
-              </Alert>
-
-              {/* Debug info for comprehensive analysis */}
-              {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (
-                <Box sx={{ mt: 1, p: 1, bgcolor: 'info.50', borderRadius: 1, fontSize: '0.7rem' }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Comprehensive Analysis Debug: Country={aiMarketCountry}, Sources={groundedSources?.length || 0}, Analysis Complete={!!comprehensiveAnalysisData}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Comprehensive Analysis Sources Display */}
-              {console.log('🚀 Rendering check - groundedSources:', groundedSources)}
-              {console.log('🚀 Rendering check - groundedSources.length:', groundedSources?.length)}
-              {console.log('🚀 Rendering check - condition result:', groundedSources && groundedSources.length > 0)}
-              {groundedSources && groundedSources.length > 0 && (
-                <Box sx={{ 
-                  mt: 2, 
-                  p: 2, 
-                  bgcolor: 'success.50', 
-                  borderRadius: 2, 
-                  border: '2px solid', 
-                  borderColor: 'success.main',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                }}>
-                  <Typography variant="subtitle2" color="success.dark" gutterBottom sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1,
-                    fontWeight: 'bold',
-                    mb: 2
-                  }}>
-                    <PublicIcon sx={{ fontSize: 18 }} />
-                    Comprehensive Analysis Sources ({groundedSources.length})
-                  </Typography>
-                  <Stack spacing={1}>
-                    {groundedSources.map((source, index) => (
-                      <Chip
-                        key={index}
-                        label={source.title || `Source ${index + 1}`}
-                        component={source.url && source.url !== 'N/A' ? Link : 'div'}
-                        href={source.url && source.url !== 'N/A' ? source.url : undefined}
-                        target="_blank"
-                        rel="noopener noreferrer" 
-                        clickable={source.url && source.url !== 'N/A'}
-                        icon={<ExternalLinkIcon sx={{ fontSize: 14 }} />}
-                        variant="outlined"
-                        color="success"
-                        sx={{ 
-                          height: 'auto',
-                          py: 1,
-                          px: 1.5,
-                          fontSize: '0.875rem',
-                          fontWeight: 'medium',
-                          textDecoration: 'none',
-                          '& .MuiChip-label': {
-                            whiteSpace: 'normal',
-                            maxWidth: '300px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          },
-                          '&:hover': source.url && source.url !== 'N/A' ? {
-                            backgroundColor: 'success.100',
-                            borderColor: 'success.dark'
-                          } : {}
-                        }}
-                      />
-                    ))}
-                  </Stack>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="caption" color="text.secondary" gutterBottom>
-                      Raw URLs:
-                    </Typography>
-                    <Box sx={{ 
-                      backgroundColor: 'grey.50', 
-                      p: 1, 
-                      borderRadius: 1, 
-                      fontSize: '0.75rem',
-                      fontFamily: 'monospace',
-                      wordBreak: 'break-all'
-                    }}>
-                      {groundedSources.map((source, index) => (
-                        <div key={index}>
-                          {index + 1}. {source.url || source.uri || 'N/A'}
-                        </div>
-                      ))}
-                    </Box>
-                  </Box>
-                </Box>
-              )}
 
               {aiGenerationError && (
                 <Alert severity="error" sx={{ mt: 2 }}>

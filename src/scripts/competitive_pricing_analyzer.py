@@ -23,20 +23,20 @@ class CompetitivePricingAnalyzer:
     
     def create_pricing_analysis_prompt(self, product_name: str, brand: str, country: str, currency: str) -> str:
         """Create a detailed prompt for competitive pricing analysis."""
-        return f"""Get prices of {brand} {product_name} in {country} from different websites, including the official {brand} website. Get details from as many retailers as possible in {country}. Return only a JSON array with exactly this structure:
+        return f"""Get prices and links of {product_name} in {country} from Google search, including the official {brand} website. Get details from as many retailers as possible in {country}. Return only a JSON array with exactly this structure:
 
 [
   {{
     "retailer": "Retailer Name",
     "price": "000.00",
     "currency": "{currency}",
-    "url": "actual grounded URL for the product",
+    "url": "actual grounded URL for the product beginning with https://vertexaisearch.cloud.google.com/",
     "availability": "In Stock",
     "last_updated": "2025-06-14"
   }}
 ]
 
-Include 5-10 major retailers including official manufacturer or brand {brand} website of the product. Return grounded websites and current pricing where possible. Return ONLY the JSON array, no additional text or formatting."""
+Include 5-10 major retailers including official manufacturer or brand {brand} website of the product. Return sources and current pricing where possible. Return ONLY the JSON array, no additional text or formatting."""
     
     async def analyze_pricing(self, product_name: str, brand: str, country: str, currency: str) -> Dict[str, Any]:
         """Perform competitive pricing analysis using Google Gemini API with grounding."""
@@ -295,8 +295,10 @@ async def main():
         
         args = parser.parse_args()
         
-        # Get API key from argument or environment
+        # Get API key from argument or environment and strip whitespace
         api_key = args.api_key or os.getenv('GEMINI_API_KEY')
+        if api_key:
+            api_key = api_key.strip()
         if not api_key:
             # Send log messages to stderr so they don't interfere with JSON output
             print("No GEMINI_API_KEY found, using fallback data", file=sys.stderr)

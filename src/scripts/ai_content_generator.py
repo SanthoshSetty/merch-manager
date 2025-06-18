@@ -18,8 +18,10 @@ from google.genai import types
 class AIContentGenerator:
     def __init__(self, api_key: str):
         """Initialize the AI content generator with Google Gemini API."""
-        self.api_key = api_key
-        self.client = genai.Client(api_key=api_key)
+        # Aggressively clean the API key to remove any whitespace/newlines
+        self.api_key = api_key.strip().replace('\n', '').replace('\r', '').replace('\t', '')
+        self.api_key = ''.join(self.api_key.split())  # Remove all whitespace
+        self.client = genai.Client(api_key=self.api_key)
         self.model = "gemini-2.0-flash-exp"
     
     def create_comprehensive_analysis_prompt(self, product_name: str, brand: str, country: str = "Global") -> str:
@@ -63,18 +65,17 @@ Return ONLY the JSON object, no additional text."""
         if product_context:
             context_str = f"\nProduct Context: {json.dumps(product_context, indent=2)}"
         
-        return f"""Generate content for a specific product field based on the field name and instructions.
+        return f"""Search for detailed product information about {brand} {product_name}. Find current specifications, features, pricing, and availability from official sources and retailer websites.
 
 Product: {brand} {product_name}
 Field Name: {field_name}
 Field Instructions: {field_instructions}{context_str}
 
-Based on the field name and instructions, generate appropriate content for this field. Consider:
-- Field type and expected format
-- Product characteristics and target audience
-- Marketing best practices
-- SEO optimization
-- Compliance requirements
+Based on your search results, generate optimized content for the {field_name} field. The content should be:
+- Based on current, verified product information from your search results
+- Optimized for Google Merchant Center requirements
+- Accurate and factual
+- SEO-friendly and conversion-focused
 
 Return ONLY the generated content for this field, no additional formatting or explanation."""
 
@@ -230,16 +231,24 @@ Return ONLY the generated content for this field, no additional formatting or ex
         grounded_sources = []
         
         try:
+            print(f"DEBUG: Extracting grounded sources from response", file=sys.stderr)
+            print(f"DEBUG: Response has candidates: {hasattr(response, 'candidates')}", file=sys.stderr)
+            if hasattr(response, 'candidates'):
+                print(f"DEBUG: Number of candidates: {len(response.candidates) if response.candidates else 0}", file=sys.stderr)
+            
             # Check if response has candidates
             if hasattr(response, 'candidates') and response.candidates:
                 candidate = response.candidates[0]
+                print(f"DEBUG: Candidate has grounding_metadata: {hasattr(candidate, 'grounding_metadata')}", file=sys.stderr)
                 
                 # Check if candidate has grounding_metadata
                 if hasattr(candidate, 'grounding_metadata') and candidate.grounding_metadata:
                     grounding_metadata = candidate.grounding_metadata
+                    print(f"DEBUG: Grounding metadata has grounding_chunks: {hasattr(grounding_metadata, 'grounding_chunks')}", file=sys.stderr)
                     
                     # Check if grounding_metadata has grounding_chunks
                     if hasattr(grounding_metadata, 'grounding_chunks') and grounding_metadata.grounding_chunks:
+                        print(f"DEBUG: Number of grounding chunks: {len(grounding_metadata.grounding_chunks)}", file=sys.stderr)
                         for chunk in grounding_metadata.grounding_chunks:
                             source = {'title': 'N/A', 'url': 'N/A', 'type': 'unknown'}
                             
@@ -320,8 +329,15 @@ async def main():
         
         args = parser.parse_args()
         
-        # Get API key
+        # Get API key from argument or environment and strip whitespace
         api_key = args.api_key or os.getenv('GEMINI_API_KEY')
+        if api_key:
+            # Aggressively clean the API key
+            api_key = api_key.strip()
+            api_key = api_key.replace('\n', '')
+            api_key = api_key.replace('\r', '')
+            api_key = api_key.replace('\t', '')
+            api_key = ''.join(api_key.split())  # Remove all whitespace
         if not api_key:
             print("❌ Error: Google Gemini API key is required.", file=sys.stderr)
             sys.exit(1)

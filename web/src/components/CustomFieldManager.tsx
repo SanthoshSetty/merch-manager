@@ -25,22 +25,7 @@ import {
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { type CustomField } from './CustomFieldBuilder';
-
-// For now, use regular Select and Switch in custom fields
-// TODO: Move AI-enhanced components to separate module when export issues are resolved
-
-// AI-Enhanced TextField for custom fields
-const AIEnhancedCustomTextField = ({ field, value, onChange, productData, aiGenerating, setAiGenerating, country, ...props }: any) => {
-  // For now, use regular TextField but we could enhance this further
-  return (
-    <StableTextField
-      {...props}
-      value={value || ''}
-      onChange={(e: any) => onChange(e.target.value)}
-      helperText={field.description}
-    />
-  );
-};
+import { AIEnhancedTextField } from './AIEnhancedComponents';
 
 // Stable TextField component to prevent cursor focus loss
 const StableTextField = memo(({ ...props }: any) => {
@@ -79,14 +64,17 @@ export default function CustomFieldManager({
     switch (field.type) {
       case 'text':
         return (
-          <AIEnhancedCustomTextField
+          <AIEnhancedTextField
             fullWidth
             label={field.label}
-            value={value}
-            onChange={onChange}
+            value={value || ''}
+            onChange={(e: any) => onChange(e.target.value)}
             required={field.required}
-            field={field}
+            helperText={field.description}
+            fieldName={field.id}
+            fieldInstructions={field.description || `Generate a ${field.label.toLowerCase()} for this product based on its details.`}
             productData={productData}
+            onFieldChange={(_fieldName: string, value: any) => onChange(value)}
             aiGenerating={aiGenerating}
             setAiGenerating={setAiGenerating}
             country={country}
@@ -100,16 +88,19 @@ export default function CustomFieldManager({
 
       case 'textarea':
         return (
-          <AIEnhancedCustomTextField
+          <AIEnhancedTextField
             fullWidth
             multiline
             rows={3}
             label={field.label}
-            value={value}
-            onChange={onChange}
+            value={value || ''}
+            onChange={(e: any) => onChange(e.target.value)}
             required={field.required}
-            field={field}
+            helperText={field.description}
+            fieldName={field.id}
+            fieldInstructions={field.description || `Generate a detailed ${field.label.toLowerCase()} for this product based on its details.`}
             productData={productData}
+            onFieldChange={(_fieldName: string, value: any) => onChange(value)}
             aiGenerating={aiGenerating}
             setAiGenerating={setAiGenerating}
             country={country}
@@ -225,7 +216,7 @@ export default function CustomFieldManager({
 
       case 'url':
         return (
-          <StableTextField
+          <AIEnhancedTextField
             fullWidth
             type="url"
             label={field.label}
@@ -233,6 +224,13 @@ export default function CustomFieldManager({
             onChange={(e: any) => onChange(e.target.value)}
             required={field.required}
             helperText={field.description}
+            fieldName={field.id}
+            fieldInstructions={field.description || `Generate a relevant ${field.label.toLowerCase()} URL for this product based on its details.`}
+            productData={productData}
+            onFieldChange={(_fieldName: string, value: any) => onChange(value)}
+            aiGenerating={aiGenerating}
+            setAiGenerating={setAiGenerating}
+            country={country}
           />
         );
 

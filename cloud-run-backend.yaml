@@ -15,7 +15,7 @@ spec:
     spec:
       containerConcurrency: 100
       containers:
-      - image: us-central1-docker.pkg.dev/PROJECT_ID/merch-manager/merch-manager-backend:latest
+      - image: us-central1-docker.pkg.dev/neon-vigil-395120/merch-manager/merch-manager-backend:1750196764
         ports:
         - containerPort: 8080
         env:
@@ -50,19 +50,17 @@ spec:
           valueFrom:
             secretKeyRef:
               name: gemini-api-key
-              key: latest
+              key: "1"
         - name: GEMINI_MODEL
           value: "gemini-2.0-flash-exp"
         - name: GEMINI_TIMEOUT
           value: "30000"
         
         # Server Configuration
-        - name: PORT
-          value: "8080"
         - name: HOST
           value: "0.0.0.0"
         - name: CORS_ORIGIN
-          value: "https://merch-manager-frontend-PROJECT_ID.a.run.app"
+          value: "https://merch-manager-frontend-hbo66mhwnq-uc.a.run.app"
         - name: CORS_CREDENTIALS
           value: "true"
         - name: REQUEST_TIMEOUT
