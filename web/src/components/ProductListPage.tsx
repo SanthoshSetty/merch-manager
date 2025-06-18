@@ -159,14 +159,23 @@ export default function ProductListPage() {
           <Typography variant="h4" component="h1">
             Product Catalog
           </Typography>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={() => loadProducts()}
-            disabled={loading}
-          >
-            Refresh
-          </Button>
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="contained"
+              onClick={() => navigate('/competitive-analysis')}
+              sx={{ bgcolor: 'secondary.main', '&:hover': { bgcolor: 'secondary.dark' } }}
+            >
+              Competitive Analysis
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={() => loadProducts()}
+              disabled={loading}
+            >
+              Refresh
+            </Button>
+          </Stack>
         </Stack>
         
         <Typography variant="body1" color="text.secondary" gutterBottom>

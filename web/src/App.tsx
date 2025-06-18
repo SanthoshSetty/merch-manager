@@ -6,6 +6,7 @@ import {
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ProductListPage from './components/ProductListPage';
 import ProductDetailPage from './components/ProductDetailPage';
+import CompetitiveAnalysisPage from './components/CompetitiveAnalysisPage';
 
 const theme = createTheme({
   palette: {
@@ -49,6 +50,7 @@ function App() {
         <Routes>
           <Route path="/" element={<ProductListPage />} />
           <Route path="/product/:productId" element={<ProductDetailPage />} />
+          <Route path="/competitive-analysis" element={<CompetitiveAnalysisPage />} />
         </Routes>
       </Router>
     </ThemeProvider>
