@@ -168,6 +168,13 @@ export default function ProductListPage() {
               Competitive Analysis
             </Button>
             <Button
+              variant="contained"
+              onClick={() => navigate('/experimental-competitive-analysis')}
+              sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
+            >
+              Advanced Competitive Analysis
+            </Button>
+            <Button
               variant="outlined"
               startIcon={<RefreshIcon />}
               onClick={() => loadProducts()}

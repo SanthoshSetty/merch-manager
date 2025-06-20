@@ -21,15 +21,15 @@ router.get('/', (req, res) => {
 router.post('/analyze', (req, res) => {
   (async () => {
     try {
-      const { productName, brand, country, currency } = req.body;
+      const { productName, brand, modelNumber, country, currency } = req.body;
     
-    console.log('🎯 Competitive pricing analysis requested:', { productName, brand, country, currency });
+    console.log('🎯 Competitive pricing analysis requested:', { productName, brand, modelNumber, country, currency });
     
-    // Validate required parameters
-    if (!productName || !brand || !country || !currency) {
+    // Validate required parameters - currency is optional
+    if (!productName || !brand || !country) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required parameters: productName, brand, country, currency'
+        error: 'Missing required parameters: productName, brand, country'
       });
     }
 
@@ -38,7 +38,7 @@ router.post('/analyze', (req, res) => {
     
     if (!geminiApiKey) {
       console.log('⚠️ No GEMINI_API_KEY found, using fallback simulation');
-      return generateFallbackPricingData(productName, brand, country, currency, res);
+      return generateFallbackPricingData(productName, brand, modelNumber, country, currency || 'USD', res);
     }
 
     console.log('🐍 Executing Python competitive pricing analysis script...');
@@ -47,14 +47,25 @@ router.post('/analyze', (req, res) => {
     const scriptPath = path.resolve(process.cwd(), 'src', 'scripts', 'competitive_pricing_analyzer.py');
     
     // Execute the Python script with environment variables
-    const pythonProcess = spawn('python3', [
+    const pythonArgs = [
       scriptPath,
       '--product', productName,
       '--brand', brand,
       '--country', country,
-      '--currency', currency,
       '--api-key', geminiApiKey
-    ], {
+    ];
+
+    // Add currency if provided
+    if (currency && currency.trim()) {
+      pythonArgs.push('--currency', currency.trim());
+    }
+
+    // Add model number if provided
+    if (modelNumber && modelNumber.trim()) {
+      pythonArgs.push('--model-number', modelNumber.trim());
+    }
+
+    const pythonProcess = spawn('python3', pythonArgs, {
       env: { ...process.env }
     });
 
@@ -67,7 +78,7 @@ router.post('/analyze', (req, res) => {
       if (!processCompleted) {
         console.log('⏰ Python script timeout (40s), falling back to simulation...');
         pythonProcess.kill();
-        generateFallbackPricingData(productName, brand, country, currency, res);
+        generateFallbackPricingData(productName, brand, modelNumber || '', country, currency, res);
       }
     }, 40000); // 40 seconds
 
@@ -97,7 +108,7 @@ router.post('/analyze', (req, res) => {
         
         // Fallback to simulation if Python script fails
         console.log('🔄 Falling back to simulation mode...');
-        return generateFallbackPricingData(productName, brand, country, currency, res);
+        return generateFallbackPricingData(productName, brand, modelNumber || '', country, currency, res);
       }
 
       try {
@@ -117,7 +128,7 @@ router.post('/analyze', (req, res) => {
         console.log('💾 Raw output preview:', stdout.substring(0, 1000));
         
         // Fallback to simulation
-        return generateFallbackPricingData(productName, brand, country, currency, res);
+        return generateFallbackPricingData(productName, brand, modelNumber || '', country, currency, res);
       }
     });
 
@@ -127,7 +138,7 @@ router.post('/analyze', (req, res) => {
       console.error('❌ Failed to start Python process:', error);
       
       // Fallback to simulation
-      return generateFallbackPricingData(productName, brand, country, currency, res);
+      return generateFallbackPricingData(productName, brand, modelNumber || '', country, currency, res);
     });
 
   } catch (error: any) {
@@ -142,8 +153,10 @@ router.post('/analyze', (req, res) => {
 });
 
 // Fallback function to generate simulation data
-function generateFallbackPricingData(productName: string, brand: string, country: string, currency: string, res: any) {
+function generateFallbackPricingData(productName: string, brand: string, modelNumber: string, country: string, currency: string, res: any) {
   console.log('📊 Generating fallback competitive pricing data...');
+  
+  const productNameWithModel = modelNumber ? `${productName} ${modelNumber}` : productName;
   
   const retailers = [
     `${brand} Official Store`,
@@ -161,9 +174,9 @@ function generateFallbackPricingData(productName: string, brand: string, country
     
     let url = '';
     if (retailer.includes('Amazon')) {
-      url = `https://www.amazon.com/search?k=${encodeURIComponent(productName)}`;
+      url = `https://www.amazon.com/search?k=${encodeURIComponent(productNameWithModel)}`;
     } else if (retailer.includes('Best Buy')) {
-      url = `https://www.bestbuy.com/site/searchpage.jsp?st=${encodeURIComponent(productName)}`;
+      url = `https://www.bestbuy.com/site/searchpage.jsp?st=${encodeURIComponent(productNameWithModel)}`;
     } else if (retailer.includes('Official Store')) {
       url = `https://www.${brand.toLowerCase().replace(/\s+/g, '')}.com`;
     } else {
@@ -185,8 +198,9 @@ function generateFallbackPricingData(productName: string, brand: string, country
     success: true,
     data: pricingData,
     metadata: {
-      productName,
+      productName: productNameWithModel,
       brand,
+      modelNumber,
       country,
       currency,
       analyzedRetailers: retailers.length,

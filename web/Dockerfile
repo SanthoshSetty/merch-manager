@@ -15,7 +15,7 @@ COPY . .
 
 # Set comprehensive environment variables for build
 # Backend API Configuration
-ENV VITE_API_BASE_URL=https://merch-manager-backend-361151780407.us-central1.run.app
+ENV VITE_API_BASE_URL=https://merch-manager-backend-hbo66mhwnq-uc.a.run.app
 ENV VITE_API_TIMEOUT=30000
 ENV VITE_REQUEST_TIMEOUT=120000
 

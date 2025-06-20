@@ -23,33 +23,41 @@ router.get('/', (req, res) => {
 router.post('/analyze', (req, res) => {
     (async () => {
         try {
-            const { productName, brand, country, currency } = req.body;
-            console.log('🎯 Competitive pricing analysis requested:', { productName, brand, country, currency });
-            // Validate required parameters
-            if (!productName || !brand || !country || !currency) {
+            const { productName, brand, modelNumber, country, currency } = req.body;
+            console.log('🎯 Competitive pricing analysis requested:', { productName, brand, modelNumber, country, currency });
+            // Validate required parameters - currency is optional
+            if (!productName || !brand || !country) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Missing required parameters: productName, brand, country, currency'
+                    error: 'Missing required parameters: productName, brand, country'
                 });
             }
             // Check if we have a Gemini API key
             const geminiApiKey = process.env.GEMINI_API_KEY;
             if (!geminiApiKey) {
                 console.log('⚠️ No GEMINI_API_KEY found, using fallback simulation');
-                return generateFallbackPricingData(productName, brand, country, currency, res);
+                return generateFallbackPricingData(productName, brand, modelNumber, country, currency || 'USD', res);
             }
             console.log('🐍 Executing Python competitive pricing analysis script...');
             // Path to the Python script - using absolute path to source directory
             const scriptPath = path_1.default.resolve(process.cwd(), 'src', 'scripts', 'competitive_pricing_analyzer.py');
             // Execute the Python script with environment variables
-            const pythonProcess = (0, child_process_1.spawn)('python3', [
+            const pythonArgs = [
                 scriptPath,
                 '--product', productName,
                 '--brand', brand,
                 '--country', country,
-                '--currency', currency,
                 '--api-key', geminiApiKey
-            ], {
+            ];
+            // Add currency if provided
+            if (currency && currency.trim()) {
+                pythonArgs.push('--currency', currency.trim());
+            }
+            // Add model number if provided
+            if (modelNumber && modelNumber.trim()) {
+                pythonArgs.push('--model-number', modelNumber.trim());
+            }
+            const pythonProcess = (0, child_process_1.spawn)('python3', pythonArgs, {
                 env: { ...process.env }
             });
             let stdout = '';
@@ -60,7 +68,7 @@ router.post('/analyze', (req, res) => {
                 if (!processCompleted) {
                     console.log('⏰ Python script timeout (40s), falling back to simulation...');
                     pythonProcess.kill();
-                    generateFallbackPricingData(productName, brand, country, currency, res);
+                    generateFallbackPricingData(productName, brand, modelNumber || '', country, currency, res);
                 }
             }, 40000); // 40 seconds
             pythonProcess.stdout.on('data', (data) => {
@@ -84,7 +92,7 @@ router.post('/analyze', (req, res) => {
                     console.error('❌ Stderr content:', stderr);
                     // Fallback to simulation if Python script fails
                     console.log('🔄 Falling back to simulation mode...');
-                    return generateFallbackPricingData(productName, brand, country, currency, res);
+                    return generateFallbackPricingData(productName, brand, modelNumber || '', country, currency, res);
                 }
                 try {
                     // Parse the JSON output from Python script
@@ -100,7 +108,7 @@ router.post('/analyze', (req, res) => {
                     console.log('💾 Raw output length:', stdout.length);
                     console.log('💾 Raw output preview:', stdout.substring(0, 1000));
                     // Fallback to simulation
-                    return generateFallbackPricingData(productName, brand, country, currency, res);
+                    return generateFallbackPricingData(productName, brand, modelNumber || '', country, currency, res);
                 }
             });
             pythonProcess.on('error', (error) => {
@@ -108,7 +116,7 @@ router.post('/analyze', (req, res) => {
                 clearTimeout(timeout);
                 console.error('❌ Failed to start Python process:', error);
                 // Fallback to simulation
-                return generateFallbackPricingData(productName, brand, country, currency, res);
+                return generateFallbackPricingData(productName, brand, modelNumber || '', country, currency, res);
             });
         }
         catch (error) {
@@ -122,8 +130,9 @@ router.post('/analyze', (req, res) => {
     })();
 });
 // Fallback function to generate simulation data
-function generateFallbackPricingData(productName, brand, country, currency, res) {
+function generateFallbackPricingData(productName, brand, modelNumber, country, currency, res) {
     console.log('📊 Generating fallback competitive pricing data...');
+    const productNameWithModel = modelNumber ? `${productName} ${modelNumber}` : productName;
     const retailers = [
         `${brand} Official Store`,
         `Amazon ${country}`,
@@ -138,10 +147,10 @@ function generateFallbackPricingData(productName, brand, country, currency, res)
         const formattedPrice = `${currency} ${price.toFixed(2)}`;
         let url = '';
         if (retailer.includes('Amazon')) {
-            url = `https://www.amazon.com/search?k=${encodeURIComponent(productName)}`;
+            url = `https://www.amazon.com/search?k=${encodeURIComponent(productNameWithModel)}`;
         }
         else if (retailer.includes('Best Buy')) {
-            url = `https://www.bestbuy.com/site/searchpage.jsp?st=${encodeURIComponent(productName)}`;
+            url = `https://www.bestbuy.com/site/searchpage.jsp?st=${encodeURIComponent(productNameWithModel)}`;
         }
         else if (retailer.includes('Official Store')) {
             url = `https://www.${brand.toLowerCase().replace(/\s+/g, '')}.com`;
@@ -162,8 +171,9 @@ function generateFallbackPricingData(productName, brand, country, currency, res)
         success: true,
         data: pricingData,
         metadata: {
-            productName,
+            productName: productNameWithModel,
             brand,
+            modelNumber,
             country,
             currency,
             analyzedRetailers: retailers.length,

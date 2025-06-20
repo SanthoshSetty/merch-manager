@@ -920,11 +920,11 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
   } = useCustomFields(productId);
 
   // Global Market/Country state for both AI content and competitive pricing
-  const [selectedCountry, setSelectedCountry] = useState('Singapore');
+  const [selectedCountry, setSelectedCountry] = useState('Global');
 
   // Competitive pricing state
-  const [competitivePricingCountry, setCompetitivePricingCountry] = useState('Singapore');
-  const [competitivePricingCurrency, setCompetitivePricingCurrency] = useState('SGD');
+  const [competitivePricingCountry, setCompetitivePricingCountry] = useState('Global');
+  const [competitivePricingCurrency, setCompetitivePricingCurrency] = useState('');
   const [competitivePricingLoading, setCompetitivePricingLoading] = useState(false);
   const [competitivePricingData, setCompetitivePricingData] = useState<any[]>([]);
   const [competitivePricingError, setCompetitivePricingError] = useState<string | null>(null);
@@ -938,7 +938,7 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
     // Set appropriate currency based on country - Enhanced mapping for all 40+ countries
     const currencyMap: Record<string, string> = {
       // Global
-      'Global': 'USD',
+      'Global': '', // No default currency - user can select any
       
       // Asia Pacific
       'Singapore': 'SGD',
@@ -977,6 +977,8 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
       'Finland': 'EUR',
       'Poland': 'PLN',
       'Czech Republic': 'CZK',
+      'Turkey': 'TRY',
+      'Russia': 'RUB',
       
       // Middle East & Africa
       'UAE': 'AED',
@@ -984,6 +986,8 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
       'Israel': 'ILS',
       'South Africa': 'ZAR',
       'Egypt': 'EGP',
+      'Nigeria': 'NGN',
+      'Kenya': 'KES',
       
       // South America
       'Brazil': 'BRL',
@@ -991,7 +995,7 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
       'Chile': 'CLP',
       'Colombia': 'COP',
     };
-    setCompetitivePricingCurrency(currencyMap[country] || 'USD');
+    setCompetitivePricingCurrency(currencyMap[country] || '');
   };
 
   // AI Content Generation state
@@ -1002,7 +1006,7 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
   const [aiGenerationError, setAiGenerationError] = useState<string | null>(null);
   const [comprehensiveAnalysisLoading, setComprehensiveAnalysisLoading] = useState(false);
   const [comprehensiveAnalysisData, setComprehensiveAnalysisData] = useState<any>(null);
-  const [aiMarketCountry, setAiMarketCountry] = useState('Singapore');
+  const [aiMarketCountry, setAiMarketCountry] = useState('Global');
   const [groundedSources, setGroundedSources] = useState<any[]>([]);
 
   // Country and currency options
@@ -1046,6 +1050,8 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
     { value: 'Finland', label: 'Finland' },
     { value: 'Poland', label: 'Poland' },
     { value: 'Czech Republic', label: 'Czech Republic' },
+    { value: 'Turkey', label: 'Turkey' },
+    { value: 'Russia', label: 'Russia' },
     
     // Middle East & Africa
     { value: 'UAE', label: 'United Arab Emirates' },
@@ -1053,6 +1059,8 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
     { value: 'Israel', label: 'Israel' },
     { value: 'South Africa', label: 'South Africa' },
     { value: 'Egypt', label: 'Egypt' },
+    { value: 'Nigeria', label: 'Nigeria' },
+    { value: 'Kenya', label: 'Kenya' },
     
     // South America
     { value: 'Brazil', label: 'Brazil' },
@@ -1142,6 +1150,7 @@ function ProductFieldGroups({ productData, onFieldChange, productId }: ProductFi
       const response = await apiClient.post('/api/competitive-pricing/analyze', {
         productName: productData.title,
         brand: productData.brand,
+        modelNumber: productData.mpn || '', // Use MPN as model number
         country: competitivePricingCountry,
         currency: competitivePricingCurrency,
       });

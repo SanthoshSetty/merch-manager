@@ -21,30 +21,64 @@ class CompetitivePricingAnalyzer:
         self.client = genai.Client(api_key=api_key)
         self.model = 'gemini-2.0-flash-exp'
     
-    def create_pricing_analysis_prompt(self, product_name: str, brand: str, country: str, currency: str) -> str:
+    def create_pricing_analysis_prompt(self, product_name: str, brand: str, model_number: str, country: str, currency: str = None) -> str:
         """Create a detailed prompt for competitive pricing analysis."""
-        return f"""Get prices and links of {product_name} in {country} from Google search, including the official {brand} website. Get details from as many retailers as possible in {country}. Return only a JSON array with exactly this structure:
+        
+        # Build search strategy based on available information
+        if model_number:
+            # Step 1: Search brand official website for model number
+            official_search = f"site:{brand.lower()}.com {model_number}"
+            # Step 2: General search with all parameters
+            general_search = f"{product_name} {brand} {model_number}"
+            search_description = f"first search the official {brand} website specifically for model number '{model_number}', then search other retailers"
+        else:
+            # If no model number, search with product name and brand
+            official_search = f"site:{brand.lower()}.com {product_name}"
+            general_search = f"{product_name} {brand}"
+            search_description = f"search the official {brand} website for '{product_name}', then search other retailers"
+        
+        # Handle currency - if not provided, ask for any available currency
+        if currency:
+            currency_instruction = f'"currency": "{currency}",'
+            price_instruction = f"in {currency}"
+        else:
+            currency_instruction = f'"currency": "detected currency (USD, EUR, etc.)",'
+            price_instruction = "in the local currency found"
+        
+        return f"""Search Strategy:
+1. FIRST: Search the official {brand} website using: {official_search}
+2. THEN: Search other major retailers using: {general_search}
+
+Find pricing and availability for {product_name} by {brand} in {country}. {search_description} for this product.
+
+Focus on getting prices {price_instruction} from:
+- Official {brand} website/store (PRIORITY)
+- Major retailers in {country} (Amazon, Best Buy, Walmart, etc.)
+- Carrier stores (if mobile device)
+- Authorized resellers
+
+Return ONLY a JSON array with exactly this structure:
 
 [
   {{
     "retailer": "Retailer Name",
     "price": "000.00",
-    "currency": "{currency}",
-    "url": "actual grounded URL for the product beginning with https://vertexaisearch.cloud.google.com/",
-    "availability": "In Stock",
-    "last_updated": "2025-06-14"
+    {currency_instruction}
+    "url": "actual grounded URL beginning with https://vertexaisearch.cloud.google.com/",
+    "availability": "In Stock/Out of Stock/Limited",
+    "last_updated": "2025-06-19"
   }}
 ]
 
-Include 5-10 major retailers including official manufacturer or brand {brand} website of the product. Return sources and current pricing where possible. Return ONLY the JSON array, no additional text or formatting."""
+Include 5-10 results prioritizing official brand sources first. Return ONLY the JSON array, no additional text."""
     
-    async def analyze_pricing(self, product_name: str, brand: str, country: str, currency: str) -> Dict[str, Any]:
+    async def analyze_pricing(self, product_name: str, brand: str, model_number: str, country: str, currency: str = None) -> Dict[str, Any]:
         """Perform competitive pricing analysis using Google Gemini API with grounding."""
         try:
             print(f"Querying Google Gemini API for competitive pricing data...", file=sys.stderr)
             
             # Create the analysis prompt
-            prompt = self.create_pricing_analysis_prompt(product_name, brand, country, currency)
+            prompt = self.create_pricing_analysis_prompt(product_name, brand, model_number, country, currency)
             
             # Create content with Google Search tool
             contents = [
@@ -114,9 +148,13 @@ Include 5-10 major retailers including official manufacturer or brand {brand} we
                     grounded_url = item.get('url', '')
                     resolved_url = grounded_url  # For now, use the same URL
                     
+                    # Handle currency - use detected currency or default to item's currency
+                    item_currency = item.get('currency', currency or 'USD')
+                    price_display = item.get('price', '0.00')
+                    
                     processed_item = {
                         'Retailer': item.get('retailer', 'Unknown Retailer'),
-                        f'Price (in {currency})': f"{currency} {item.get('price', '0.00')}",
+                        f'Price (in {item_currency})': f"{item_currency} {price_display}",
                         'Grounded URL': grounded_url,
                         'Resolved URL': resolved_url,
                         'Availability': item.get('availability', 'Unknown'),
@@ -132,7 +170,7 @@ Include 5-10 major retailers including official manufacturer or brand {brand} we
                         'productName': product_name,
                         'brand': brand,
                         'country': country,
-                        'currency': currency,
+                        'currency': currency or 'Mixed/Auto-detected',
                         'analyzedRetailers': len(processed_data),
                         'timestamp': '2025-06-16T00:00:00Z',
                         'source': 'Google Gemini with Search Grounding API'
@@ -201,7 +239,7 @@ Include 5-10 major retailers including official manufacturer or brand {brand} we
             print(f"Error extracting grounded sources: {e}", file=sys.stderr)
             return []
 
-    def generate_fallback_data(self, product_name: str, brand: str, country: str, currency: str, response_text: str) -> Dict[str, Any]:
+    def generate_fallback_data(self, product_name: str, brand: str, country: str, currency: str = None, response_text: str = '') -> Dict[str, Any]:
         """Generate fallback pricing data when JSON parsing fails."""
         print("Generating fallback pricing data...", file=sys.stderr)
         
@@ -237,6 +275,7 @@ Include 5-10 major retailers including official manufacturer or brand {brand} we
             
             base_price = 1000
             retailers = country_retailers.get(country, ['Local Retailer 1', 'Local Retailer 2', 'Local Retailer 3'])
+            fallback_currency = currency or 'USD'  # Default to USD if no currency provided
             
             for i, retailer in enumerate(retailers[:5]):
                 if len(pricing_data) >= 5:
@@ -247,7 +286,7 @@ Include 5-10 major retailers including official manufacturer or brand {brand} we
                 
                 pricing_data.append({
                     'Retailer': f"{retailer} {country}",
-                    f'Price (in {currency})': f"{currency} {final_price:.2f}",
+                    f'Price (in {fallback_currency})': f"{fallback_currency} {final_price:.2f}",
                     'Grounded URL': self.generate_retailer_url(retailer, product_name),
                     'Resolved URL': self.generate_retailer_url(retailer, product_name),
                     'Availability': 'In Stock' if i < 3 else 'Limited Stock',
@@ -261,7 +300,7 @@ Include 5-10 major retailers including official manufacturer or brand {brand} we
                 'productName': product_name,
                 'brand': brand,
                 'country': country,
-                'currency': currency,
+                'currency': currency or 'Mixed/Auto-detected',
                 'analyzedRetailers': len(pricing_data),
                 'timestamp': '2025-06-14T00:00:00Z',
                 'source': 'Enhanced Fallback with Text Analysis',
@@ -289,8 +328,9 @@ async def main():
         parser = argparse.ArgumentParser(description='Competitive Pricing Analysis using Google Generative AI')
         parser.add_argument('--product', required=True, help='Product name')
         parser.add_argument('--brand', required=True, help='Brand name')
+        parser.add_argument('--model-number', help='Model number (optional)')
         parser.add_argument('--country', required=True, help='Target country')
-        parser.add_argument('--currency', required=True, help='Currency code')
+        parser.add_argument('--currency', help='Currency code (optional, will detect from region if not provided)')
         parser.add_argument('--api-key', help='Google Generative AI API key (or set GEMINI_API_KEY env var)')
         
         args = parser.parse_args()
@@ -303,29 +343,34 @@ async def main():
             # Send log messages to stderr so they don't interfere with JSON output
             print("No GEMINI_API_KEY found, using fallback data", file=sys.stderr)
             # Return fallback data instead of exiting
+            product_with_model = f"{args.product} {args.model_number}".strip() if args.model_number else args.product
+            search_query = product_with_model.replace(' ', '+')
+            fallback_currency = args.currency or 'USD'
+            
             result = {
                 "success": True,
                 "data": [
                     {
                         "Retailer": f"{args.brand} Official Store",
-                        f"Price (in {args.currency})": f"{args.currency} 1200.00",
+                        f"Price (in {fallback_currency})": f"{fallback_currency} 1200.00",
                         "Grounded URL": f"https://www.{args.brand.lower()}.com",
                         "Resolved URL": f"https://www.{args.brand.lower()}.com",
                         "Availability": "In Stock"
                     },
                     {
                         "Retailer": f"Amazon {args.country}",
-                        f"Price (in {args.currency})": f"{args.currency} 1250.00",
-                        "Grounded URL": f"https://www.amazon.com/s?k={args.product.replace(' ', '+')}",
-                        "Resolved URL": f"https://www.amazon.com/s?k={args.product.replace(' ', '+')}",
+                        f"Price (in {fallback_currency})": f"{fallback_currency} 1250.00",
+                        "Grounded URL": f"https://www.amazon.com/s?k={search_query}",
+                        "Resolved URL": f"https://www.amazon.com/s?k={search_query}",
                         "Availability": "In Stock"
                     }
                 ],
                 "metadata": {
-                    "productName": args.product,
+                    "productName": product_with_model,
                     "brand": args.brand,
+                    "modelNumber": args.model_number or '',
                     "country": args.country,
-                    "currency": args.currency,
+                    "currency": args.currency or 'USD',
                     "analyzedRetailers": 2,
                     "timestamp": "2025-06-14T00:00:00Z",
                     "source": "Python Fallback (No API Key)",
@@ -342,7 +387,7 @@ async def main():
         analyzer = CompetitivePricingAnalyzer(api_key)
         
         # Perform analysis
-        result = await analyzer.analyze_pricing(args.product, args.brand, args.country, args.currency)
+        result = await analyzer.analyze_pricing(args.product, args.brand, args.model_number or '', args.country, args.currency)
         
         # Output result as JSON to stdout only
         print(json.dumps(result, indent=2))

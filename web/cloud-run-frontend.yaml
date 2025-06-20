@@ -13,7 +13,7 @@ spec:
     spec:
       containerConcurrency: 100
       containers:
-      - image: us-central1-docker.pkg.dev/PROJECT_ID/merch-manager/merch-manager-frontend:latest
+      - image: us-central1-docker.pkg.dev/neon-vigil-395120/merch-manager/frontend:v2
         ports:
         - containerPort: 8080
         env:

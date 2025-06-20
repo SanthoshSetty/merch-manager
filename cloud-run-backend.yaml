@@ -15,7 +15,7 @@ spec:
     spec:
       containerConcurrency: 100
       containers:
-      - image: us-central1-docker.pkg.dev/neon-vigil-395120/merch-manager/merch-manager-backend:1750196764
+      - image: us-central1-docker.pkg.dev/neon-vigil-395120/merch-manager/backend:v2.0.4
         ports:
         - containerPort: 8080
         env:

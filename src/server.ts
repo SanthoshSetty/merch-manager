@@ -8,6 +8,7 @@ import { ProductsClient } from './modules/products/ProductsClient';
 import { ReviewsClient } from './modules/reviews/ReviewsClient';
 import { MerchantAuth } from './auth/MerchantAuth';
 import competitivePricingRouter from './routes/competitive-pricing';
+import experimentalCompetitiveRouter from './routes/experimental-competitive-analysis';
 import aiContentRouter from './routes/ai-content';
 
 dotenv.config();
@@ -17,7 +18,7 @@ const app = express();
 // Environment configuration with defaults
 const config = {
   // Server
-  PORT: process.env.PORT || 3001,
+  PORT: parseInt(process.env.PORT || '8080'),
   HOST: process.env.HOST || '0.0.0.0',
   NODE_ENV: process.env.NODE_ENV || 'development',
   APP_NAME: process.env.APP_NAME || 'merch-manager-backend',
@@ -153,14 +154,20 @@ app.get('/', (req, res) => {
       'GET /api/ai-content - AI Content Generation API',
       'POST /api/ai-content/analyze-product - Comprehensive AI product analysis',
       'POST /api/ai-content/generate-field - Generate content for specific fields',
-      'GET /api/competitive-pricing - Competitive Pricing API'
+      'GET /api/competitive-pricing - Competitive Pricing API',
+      'POST /api/experimental-competitive/analyze - Experimental Competitive Analysis API (Gemini 2.5 Flash)'
     ]
   });
 });
 
 // Mount routes
+console.log('🔧 Mounting routes...');
 app.use('/api/competitive-pricing', competitivePricingRouter);
+console.log('🧪 Mounting experimental competitive router...');
+app.use('/api/experimental-competitive', experimentalCompetitiveRouter);
+console.log('🧪 Experimental competitive router mounted at /api/experimental-competitive');
 app.use('/api/ai-content', aiContentRouter);
+console.log('✅ All routes mounted successfully');
 
 // Initialize clients
 const authManager = new MerchantAuth();
@@ -687,6 +694,14 @@ function generateUpdateMask(updates: any): string {
   return paths.join(',');
 }
 
-app.listen(config.PORT, () => {
-  console.log(`🚀 Merchant API Server running on port ${config.PORT}`);
+app.listen(config.PORT, config.HOST, () => {
+  console.log(`🚀 Merchant API Server running on ${config.HOST}:${config.PORT}`);
+  console.log(`🌟 Environment: ${config.NODE_ENV}`);
+  console.log(`📋 Available endpoints:`);
+  console.log(`   - GET  /api/health - Health check`);
+  console.log(`   - POST /api/products - Manage products`);
+  console.log(`   - POST /api/reviews - Manage reviews`);
+  console.log(`   - POST /api/competitive-pricing/analyze - Competitive pricing analysis`);
+  console.log(`   - POST /api/experimental-competitive/analyze - Experimental competitive analysis`);
+  console.log(`   - POST /api/ai-content/generate - AI content generation`);
 });

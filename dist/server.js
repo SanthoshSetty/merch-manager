@@ -13,13 +13,14 @@ const ProductsClient_1 = require("./modules/products/ProductsClient");
 const ReviewsClient_1 = require("./modules/reviews/ReviewsClient");
 const MerchantAuth_1 = require("./auth/MerchantAuth");
 const competitive_pricing_1 = __importDefault(require("./routes/competitive-pricing"));
+const experimental_competitive_analysis_1 = __importDefault(require("./routes/experimental-competitive-analysis"));
 const ai_content_1 = __importDefault(require("./routes/ai-content"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 // Environment configuration with defaults
 const config = {
     // Server
-    PORT: process.env.PORT || 3001,
+    PORT: parseInt(process.env.PORT || '8080'),
     HOST: process.env.HOST || '0.0.0.0',
     NODE_ENV: process.env.NODE_ENV || 'development',
     APP_NAME: process.env.APP_NAME || 'merch-manager-backend',
@@ -138,13 +139,19 @@ app.get('/', (req, res) => {
             'GET /api/ai-content - AI Content Generation API',
             'POST /api/ai-content/analyze-product - Comprehensive AI product analysis',
             'POST /api/ai-content/generate-field - Generate content for specific fields',
-            'GET /api/competitive-pricing - Competitive Pricing API'
+            'GET /api/competitive-pricing - Competitive Pricing API',
+            'POST /api/experimental-competitive/analyze - Experimental Competitive Analysis API (Gemini 2.5 Flash)'
         ]
     });
 });
 // Mount routes
+console.log('🔧 Mounting routes...');
 app.use('/api/competitive-pricing', competitive_pricing_1.default);
+console.log('🧪 Mounting experimental competitive router...');
+app.use('/api/experimental-competitive', experimental_competitive_analysis_1.default);
+console.log('🧪 Experimental competitive router mounted at /api/experimental-competitive');
 app.use('/api/ai-content', ai_content_1.default);
+console.log('✅ All routes mounted successfully');
 // Initialize clients
 const authManager = new MerchantAuth_1.MerchantAuth();
 const productsClient = new ProductsClient_1.ProductsClient(authManager);
@@ -625,7 +632,15 @@ function generateUpdateMask(updates) {
     }
     return paths.join(',');
 }
-app.listen(config.PORT, () => {
-    console.log(`🚀 Merchant API Server running on port ${config.PORT}`);
+app.listen(config.PORT, config.HOST, () => {
+    console.log(`🚀 Merchant API Server running on ${config.HOST}:${config.PORT}`);
+    console.log(`🌟 Environment: ${config.NODE_ENV}`);
+    console.log(`📋 Available endpoints:`);
+    console.log(`   - GET  /api/health - Health check`);
+    console.log(`   - POST /api/products - Manage products`);
+    console.log(`   - POST /api/reviews - Manage reviews`);
+    console.log(`   - POST /api/competitive-pricing/analyze - Competitive pricing analysis`);
+    console.log(`   - POST /api/experimental-competitive/analyze - Experimental competitive analysis`);
+    console.log(`   - POST /api/ai-content/generate - AI content generation`);
 });
 //# sourceMappingURL=server.js.map

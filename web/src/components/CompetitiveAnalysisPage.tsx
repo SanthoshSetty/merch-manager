@@ -35,30 +35,100 @@ import { classifyOfficialWebsite } from '../utils/officialWebsiteClassifier';
 
 // Country and currency mappings
 const countries = [
+  'Global',
   'United States',
   'Canada', 
   'United Kingdom',
   'Germany',
   'France',
+  'Spain',
+  'Italy',
+  'Netherlands',
+  'Belgium',
+  'Sweden',
+  'Norway',
+  'Denmark',
   'Japan',
+  'South Korea',
+  'China',
+  'Hong Kong',
+  'Taiwan',
   'Australia',
+  'New Zealand',
   'Singapore',
+  'Malaysia',
+  'Thailand',
+  'Philippines',
+  'Indonesia',
+  'Vietnam',
   'India',
-  'Brazil'
+  'UAE',
+  'Saudi Arabia',
+  'Israel',
+  'Turkey',
+  'Russia',
+  'Brazil',
+  'Mexico',
+  'Argentina',
+  'Chile',
+  'Colombia',
+  'South Africa',
+  'Nigeria',
+  'Kenya',
+  'Egypt'
 ];
 
 const currencyMap: { [key: string]: string } = {
+  'Global': '', // No default currency for global searches - user can select any
   'United States': 'USD',
   'Canada': 'CAD',
   'United Kingdom': 'GBP', 
   'Germany': 'EUR',
   'France': 'EUR',
+  'Spain': 'EUR',
+  'Italy': 'EUR',
+  'Netherlands': 'EUR',
+  'Belgium': 'EUR',
+  'Sweden': 'SEK',
+  'Norway': 'NOK',
+  'Denmark': 'DKK',
   'Japan': 'JPY',
+  'South Korea': 'KRW',
+  'China': 'CNY',
+  'Hong Kong': 'HKD',
+  'Taiwan': 'TWD',
   'Australia': 'AUD',
+  'New Zealand': 'NZD',
   'Singapore': 'SGD',
+  'Malaysia': 'MYR',
+  'Thailand': 'THB',
+  'Philippines': 'PHP',
+  'Indonesia': 'IDR',
+  'Vietnam': 'VND',
   'India': 'INR',
-  'Brazil': 'BRL'
+  'UAE': 'AED',
+  'Saudi Arabia': 'SAR',
+  'Israel': 'ILS',
+  'Turkey': 'TRY',
+  'Russia': 'RUB',
+  'Brazil': 'BRL',
+  'Mexico': 'MXN',
+  'Argentina': 'ARS',
+  'Chile': 'CLP',
+  'Colombia': 'COP',
+  'South Africa': 'ZAR',
+  'Nigeria': 'NGN',
+  'Kenya': 'KES',
+  'Egypt': 'EGP'
 };
+
+// Common currencies for manual selection
+const commonCurrencies = [
+  'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'SEK', 'NZD',
+  'MXN', 'SGD', 'HKD', 'NOK', 'TRY', 'ZAR', 'BRL', 'INR', 'KRW', 'PLN',
+  'TWD', 'DKK', 'CZK', 'HUF', 'ILS', 'CLP', 'PHP', 'AED', 'COP', 'SAR',
+  'MYR', 'RON', 'THB', 'BGN', 'HRK', 'RUB', 'IDR', 'VND'
+];
 
 interface CompetitivePricingData {
   Retailer: string;
@@ -74,8 +144,9 @@ const CompetitiveAnalysisPage: React.FC = () => {
   // Form state
   const [productName, setProductName] = useState('');
   const [brand, setBrand] = useState('');
-  const [country, setCountry] = useState('Singapore');
-  const [currency, setCurrency] = useState('SGD');
+  const [modelNumber, setModelNumber] = useState('');
+  const [country, setCountry] = useState('Global');
+  const [currency, setCurrency] = useState('');
   
   // Analysis state
   const [loading, setLoading] = useState(false);
@@ -85,7 +156,7 @@ const CompetitiveAnalysisPage: React.FC = () => {
   // Update currency when country changes
   const handleCountryChange = (selectedCountry: string) => {
     setCountry(selectedCountry);
-    setCurrency(currencyMap[selectedCountry] || 'USD');
+    setCurrency(currencyMap[selectedCountry] || '');
   };
 
   // Enhanced function to check if a retailer/URL is an official brand website
@@ -122,6 +193,7 @@ const CompetitiveAnalysisPage: React.FC = () => {
       const response = await apiClient.post('/api/competitive-pricing/analyze', {
         productName: productName.trim(),
         brand: brand.trim(),
+        modelNumber: modelNumber.trim(),
         country,
         currency,
       });
@@ -221,6 +293,16 @@ const CompetitiveAnalysisPage: React.FC = () => {
                   />
 
                   <TextField
+                    label="Model Number"
+                    value={modelNumber}
+                    onChange={(e) => setModelNumber(e.target.value)}
+                    placeholder="e.g., A2896, MN-12345"
+                    variant="outlined"
+                    fullWidth
+                    helperText="Optional: Manufacturer model number for more accurate matching"
+                  />
+
+                  <TextField
                     select
                     label="Target Country"
                     value={country}
@@ -236,13 +318,23 @@ const CompetitiveAnalysisPage: React.FC = () => {
                   </TextField>
 
                   <TextField
+                    select
                     label="Currency"
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
                     variant="outlined"
                     fullWidth
-                    helperText="Currency is automatically set based on country"
-                  />
+                    helperText="Optional: Currency is automatically set based on country, or select manually. Leave empty for auto-detection."
+                  >
+                    <MenuItem value="">
+                      <em>Auto-detect from region</em>
+                    </MenuItem>
+                    {commonCurrencies.map((currencyOption) => (
+                      <MenuItem key={currencyOption} value={currencyOption}>
+                        {currencyOption}
+                      </MenuItem>
+                    ))}
+                  </TextField>
 
                   <Button
                     variant="contained"
