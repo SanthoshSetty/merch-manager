@@ -71,6 +71,7 @@ function ExperimentalCompetitiveAnalysisPage() {
   const [productName, setProductName] = useState('');
   const [brand, setBrand] = useState('');
   const [modelNumber, setModelNumber] = useState('');
+  const [brandWebsiteUrl, setBrandWebsiteUrl] = useState('');
   const [country, setCountry] = useState('Global');
 
   const handleAnalyze = async () => {
@@ -92,6 +93,10 @@ function ExperimentalCompetitiveAnalysisPage() {
       
       if (modelNumber.trim()) {
         payload.modelNumber = modelNumber.trim();
+      }
+
+      if (brandWebsiteUrl.trim()) {
+        payload.brandWebsiteUrl = brandWebsiteUrl.trim();
       }
 
       const response = await fetch('https://merch-manager-backend-361151780407.us-central1.run.app/api/experimental-competitive/analyze', {
@@ -226,6 +231,20 @@ function ExperimentalCompetitiveAnalysisPage() {
                 disabled={loading}
                 variant="outlined"
                 helperText="Specific model or variant"
+              />
+            </Box>
+            
+            <Box sx={{ flex: 1 }}>
+              <TextField
+                fullWidth
+                label="Brand Website URL (Optional)"
+                placeholder="e.g. https://www.apple.com"
+                value={brandWebsiteUrl}
+                onChange={(e) => setBrandWebsiteUrl(e.target.value)}
+                onKeyPress={handleKeyPress}
+                disabled={loading}
+                variant="outlined"
+                helperText="Official brand website for better search results"
               />
             </Box>
             

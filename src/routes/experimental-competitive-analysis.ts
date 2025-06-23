@@ -13,7 +13,7 @@ router.post('/analyze', (req, res) => {
     try {
     console.log('🧪 Experimental competitive analysis request received:', req.body);
     
-    const { productName, brand, modelNumber, description, country } = req.body;
+    const { productName, brand, modelNumber, description, country, brandWebsiteUrl } = req.body;
     
     // Validate required fields
     if (!productName || !brand) {
@@ -40,6 +40,11 @@ router.post('/analyze', (req, res) => {
     // Add optional country if provided, default to 'Global'
     const searchCountry = country && country.trim() ? country.trim() : 'Global';
     args.push('--country', searchCountry);
+    
+    // Add optional brand website URL if provided
+    if (brandWebsiteUrl && brandWebsiteUrl.trim()) {
+      args.push('--brand-website-url', brandWebsiteUrl.trim());
+    }
     
     console.log('🧪 Running experimental script with args:', args);
     

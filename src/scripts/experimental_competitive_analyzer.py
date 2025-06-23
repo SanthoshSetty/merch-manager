@@ -8,7 +8,7 @@ import sys
 import requests
 import re
 
-def generate_competitive_analysis(product_name: str, brand: str, model_number: str = None, country: str = "Global"):
+def generate_competitive_analysis(product_name: str, brand: str, model_number: str = None, country: str = "Global", brand_website_url: str = None):
     """Generate competitive analysis using Google Gemini with Search grounding"""
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -24,10 +24,15 @@ def generate_competitive_analysis(product_name: str, brand: str, model_number: s
     
     # Enhanced prompt for structured output with focus on pricing
     
+    # Build brand website guidance
+    brand_website_guidance = ""
+    if brand_website_url:
+        brand_website_guidance = f"The official {brand} website is {brand_website_url}. "
+    
     if model_number:
         # Prompt when model number is provided - more specific search
-        prompt = f"""Search for "{search_query}" from {country} and find as many links as possible. prioritize results from {brand} official website. Make sure results belong to product identifier {model_number}. prioritize accuracy and relevance of the results.
-you can also search for {model_number} from {brand} site if it is not available in the first search results. Make sure you search for pricing of the products in the search results.
+        prompt = f"""Search for "{search_query}" from {country} and find as many links as possible. {brand_website_guidance}First search from {brand} official website. it is absolutely important to have link from {brand} website. Make sure results belong to product identifier {model_number}. prioritize accuracy and relevance of the results.
+you can also search for {model_number} from {brand} site if it is not available in the first search results. In addition, it is very much important to have also links from major retailers . Make sure you search for pricing of the products in the search results. It is also absolutely important to find sale price of the product.
 For each retailer found, provide the information in this exact format:
 
 RETAILER: [retailer name]
@@ -38,8 +43,8 @@ OFFICIAL: [Yes if official brand website, No if third-party retailer]
 """
     else:
         # Prompt when no model number is provided - broader search
-        prompt = f"""Search for "{search_query}" from {country} and find as many links as possible. prioritize results from {brand} official website. Focus on finding the most relevant {brand} {product_name} products available for purchase.
-Since no specific model number is provided, look for popular or current models of {brand} {product_name}. Make sure you search for pricing of the products in the search results.
+        prompt = f"""Search for "{search_query}" from {country} and find as many links as possible. {brand_website_guidance}First search from {brand} official website. it is absolutely important to have link from {brand} website. 
+ In addition, it is very much important to have also links from major retailers . It is also absolutely important to find sale price of the product.
 For each retailer found, provide the information in this exact format:
 
 RETAILER: [retailer name]
@@ -218,6 +223,7 @@ def main():
     parser.add_argument('--brand', required=True, help='Brand name')
     parser.add_argument('--model-number', help='Model number (optional)')
     parser.add_argument('--country', default='Global', help='Country to focus search on (default: Global)')
+    parser.add_argument('--brand-website-url', help='Brand official website URL (optional)')
     
     args = parser.parse_args()
     
@@ -227,7 +233,8 @@ def main():
             args.product, 
             args.brand, 
             args.model_number,
-            args.country
+            args.country,
+            args.brand_website_url
         )
         
         # Parse response
