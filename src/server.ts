@@ -16,6 +16,9 @@ dotenv.config();
 
 const app = express();
 
+// Trust proxy for Cloud Run
+app.set('trust proxy', true);
+
 // Environment configuration with defaults
 const config = {
   // Server
@@ -167,6 +170,13 @@ app.use('/api/competitive-pricing', competitivePricingRouter);
 console.log('🧪 Mounting experimental competitive router...');
 app.use('/api/experimental-competitive', experimentalCompetitiveRouter);
 console.log('🧪 Experimental competitive router mounted at /api/experimental-competitive');
+
+// Temporary test route for super-intelligent
+app.get('/api/super-intelligent/test', (req, res) => {
+  res.json({ success: true, message: 'Super-intelligent test route works!' });
+});
+console.log('🧪 Added test super-intelligent route');
+
 console.log('🚀 Mounting super-intelligent analysis router...');
 app.use('/api/super-intelligent', superIntelligentAnalysisRouter);
 console.log('🚀 Super-intelligent analysis router mounted at /api/super-intelligent');

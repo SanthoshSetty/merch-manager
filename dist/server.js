@@ -14,9 +14,12 @@ const ReviewsClient_1 = require("./modules/reviews/ReviewsClient");
 const MerchantAuth_1 = require("./auth/MerchantAuth");
 const competitive_pricing_1 = __importDefault(require("./routes/competitive-pricing"));
 const experimental_competitive_analysis_1 = __importDefault(require("./routes/experimental-competitive-analysis"));
+const super_intelligent_analysis_1 = __importDefault(require("./routes/super-intelligent-analysis"));
 const ai_content_1 = __importDefault(require("./routes/ai-content"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
+// Trust proxy for Cloud Run
+app.set('trust proxy', true);
 // Environment configuration with defaults
 const config = {
     // Server
@@ -150,6 +153,14 @@ app.use('/api/competitive-pricing', competitive_pricing_1.default);
 console.log('🧪 Mounting experimental competitive router...');
 app.use('/api/experimental-competitive', experimental_competitive_analysis_1.default);
 console.log('🧪 Experimental competitive router mounted at /api/experimental-competitive');
+// Temporary test route for super-intelligent
+app.get('/api/super-intelligent/test', (req, res) => {
+    res.json({ success: true, message: 'Super-intelligent test route works!' });
+});
+console.log('🧪 Added test super-intelligent route');
+console.log('🚀 Mounting super-intelligent analysis router...');
+app.use('/api/super-intelligent', super_intelligent_analysis_1.default);
+console.log('🚀 Super-intelligent analysis router mounted at /api/super-intelligent');
 app.use('/api/ai-content', ai_content_1.default);
 console.log('✅ All routes mounted successfully');
 // Initialize clients

@@ -175,6 +175,13 @@ export default function ProductListPage() {
               Advanced Competitive Analysis
             </Button>
             <Button
+              variant="contained"
+              onClick={() => navigate('/super-intelligent-analysis')}
+              sx={{ bgcolor: '#8B5CF6', '&:hover': { bgcolor: '#7C3AED' } }}
+            >
+              🧠 Super-Intelligent Analysis
+            </Button>
+            <Button
               variant="outlined"
               startIcon={<RefreshIcon />}
               onClick={() => loadProducts()}

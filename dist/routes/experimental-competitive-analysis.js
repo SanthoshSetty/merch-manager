@@ -14,7 +14,7 @@ router.post('/analyze', (req, res) => {
     (async () => {
         try {
             console.log('🧪 Experimental competitive analysis request received:', req.body);
-            const { productName, brand, modelNumber, description, country } = req.body;
+            const { productName, brand, modelNumber, description, country, brandWebsiteUrl } = req.body;
             // Validate required fields
             if (!productName || !brand) {
                 return res.status(400).json({
@@ -37,6 +37,10 @@ router.post('/analyze', (req, res) => {
             // Add optional country if provided, default to 'Global'
             const searchCountry = country && country.trim() ? country.trim() : 'Global';
             args.push('--country', searchCountry);
+            // Add optional brand website URL if provided
+            if (brandWebsiteUrl && brandWebsiteUrl.trim()) {
+                args.push('--brand-website-url', brandWebsiteUrl.trim());
+            }
             console.log('🧪 Running experimental script with args:', args);
             // Execute the experimental Python script
             const pythonProcess = (0, child_process_1.spawn)('python3', args, {

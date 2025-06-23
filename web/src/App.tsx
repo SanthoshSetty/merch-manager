@@ -8,6 +8,7 @@ import ProductListPage from './components/ProductListPage';
 import ProductDetailPage from './components/ProductDetailPage';
 import CompetitiveAnalysisPage from './components/CompetitiveAnalysisPage';
 import ExperimentalCompetitiveAnalysisPage from './components/ExperimentalCompetitiveAnalysisPage';
+import SuperIntelligentAnalysisPage from './components/SuperIntelligentAnalysisPage';
 
 const theme = createTheme({
   palette: {
@@ -53,6 +54,7 @@ function App() {
           <Route path="/product/:productId" element={<ProductDetailPage />} />
           <Route path="/competitive-analysis" element={<CompetitiveAnalysisPage />} />
           <Route path="/experimental-competitive-analysis" element={<ExperimentalCompetitiveAnalysisPage />} />
+          <Route path="/super-intelligent-analysis" element={<SuperIntelligentAnalysisPage />} />
         </Routes>
       </Router>
     </ThemeProvider>

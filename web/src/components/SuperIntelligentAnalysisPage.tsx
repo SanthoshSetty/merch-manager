@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { config } from '../config/api';
 
 interface SuperIntelligentAnalysisRequest {
   productName: string;
@@ -49,11 +50,73 @@ export default function SuperIntelligentAnalysisPage() {
 
   const loadAgentStatus = async () => {
     try {
-      const response = await fetch('/api/super-intelligent/agent-status');
+      const response = await fetch(`${config.API_BASE_URL}/api/super-intelligent/agent-status`);
       const data = await response.json();
       setAgentStatus(data.agents || {});
     } catch (error) {
       console.error('Failed to load agent status:', error);
+    }
+  };
+
+  const runQuickAnalysis = async () => {
+    if (!request.productName) {
+      alert('Please enter a product name');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+    setCurrentPhase('Running quick super-intelligent analysis...');
+
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setAnalysisProgress(prev => prev < 90 ? prev + 10 : prev);
+      }, 200);
+
+      const response = await fetch(`${config.API_BASE_URL}/api/super-intelligent/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product: request.productName,
+          description: request.modelNumber || 'Product analysis',
+          category: 'General'
+        }),
+      });
+
+      const result = await response.json();
+      
+      clearInterval(progressInterval);
+      setAnalysisProgress(100);
+      setCurrentPhase('Analysis complete!');
+      
+      // Transform the result to match expected format
+      setAnalysisResult({
+        success: result.success,
+        analysis_type: 'quick_analysis',
+        traditional_analysis: result.analysis || {},
+        enhanced_analysis: { intelligence_level: result.intelligence_level },
+        super_intelligent_insights: result.analysis || {},
+        actionable_plan: result.analysis?.recommendations || [],
+        metadata: { processed_at: result.processed_at }
+      });
+
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      setAnalysisResult({
+        success: false,
+        error: 'Failed to complete analysis',
+        analysis_type: 'quick_analysis',
+        traditional_analysis: {},
+        enhanced_analysis: {},
+        super_intelligent_insights: {},
+        actionable_plan: {},
+        metadata: {}
+      });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -98,7 +161,7 @@ export default function SuperIntelligentAnalysisPage() {
         });
       }, 500);
 
-      const response = await fetch('/api/super-intelligent/super-intelligent-analysis', {
+      const response = await fetch(`${config.API_BASE_URL}/api/super-intelligent/super-intelligent-analysis`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -270,21 +333,39 @@ export default function SuperIntelligentAnalysisPage() {
               />
             </div>
             
-            <button 
-              onClick={runSuperIntelligentAnalysis}
-              disabled={isAnalyzing}
-              className={`w-full py-3 px-4 rounded-md font-medium ${
-                isAnalyzing 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-purple-600 hover:bg-purple-700 text-white'
-              }`}
-            >
-              {isAnalyzing ? (
-                <>🧠 Running Super-Intelligent Analysis...</>
-              ) : (
-                <>⚡ Start 10X Smarter Analysis</>
-              )}
-            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button 
+                onClick={runQuickAnalysis}
+                disabled={isAnalyzing}
+                className={`py-3 px-4 rounded-md font-medium ${
+                  isAnalyzing 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {isAnalyzing ? (
+                  <>🧠 Running Analysis...</>
+                ) : (
+                  <>⚡ Quick Analysis</>
+                )}
+              </button>
+              
+              <button 
+                onClick={runSuperIntelligentAnalysis}
+                disabled={isAnalyzing}
+                className={`py-3 px-4 rounded-md font-medium ${
+                  isAnalyzing 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-purple-600 hover:bg-purple-700 text-white'
+                }`}
+              >
+                {isAnalyzing ? (
+                  <>🧠 Running Super Analysis...</>
+                ) : (
+                  <>🚀 Full Multi-Agent Analysis</>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
