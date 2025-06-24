@@ -79,19 +79,33 @@ npm install
 
 # Environment configuration
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env with your configuration (DO NOT commit this file!)
 ```
 
 ### 4. Google Cloud Setup
+
+⚠️ **SECURITY WARNING**: Never commit service account keys or API keys to version control!
+
 ```bash
 # Authenticate with Google Cloud
 gcloud auth login
 gcloud config set project YOUR_PROJECT_ID
 
-# Create secrets
+# Create secrets in Google Secret Manager (RECOMMENDED for production)
 gcloud secrets create gemini-api-key --data-file=<(echo "YOUR_GEMINI_API_KEY")
-gcloud secrets create google-credentials --data-file=path/to/service-account-key.json
+# For service account authentication, use Google Cloud Run service accounts instead of JSON keys
 ```
+
+**For Local Development Only:**
+- Create a service account in Google Cloud Console
+- Download the JSON key file (store it outside the repository)
+- Set `GOOGLE_APPLICATION_CREDENTIALS` to point to the key file
+- Never commit this file to git
+
+**For Production:**
+- Use Google Cloud Run service accounts (recommended)
+- Store secrets in Google Secret Manager
+- Use IAM roles instead of service account keys
 
 ## 🚀 Development
 
@@ -157,13 +171,31 @@ VITE_GOOGLE_CLOUD_PROJECT_ID=your-project-id
 VITE_GOOGLE_MERCHANT_ID=your-merchant-id
 ```
 
-## 🔐 Security
+## 🔒 Security
 
-- **API Keys**: Stored securely in Google Secret Manager
-- **Authentication**: Service account-based authentication
-- **CORS**: Configured for secure cross-origin requests
-- **Rate Limiting**: Prevents API abuse
-- **Input Validation**: Comprehensive input sanitization
+⚠️ **IMPORTANT SECURITY NOTICE** ⚠️
+
+This repository has been cleaned of sensitive credentials after they were accidentally exposed. If you're setting up this project:
+
+### What NOT to do:
+- ❌ Never commit `.env` files with real API keys
+- ❌ Never commit service account JSON key files  
+- ❌ Never hardcode credentials in source code
+- ❌ Never commit credentials to public repositories
+
+### Best Practices:
+- ✅ Use `.env.example` files for documentation
+- ✅ Add `.env` and `credentials/` to `.gitignore`
+- ✅ Use Google Cloud Run service accounts for production
+- ✅ Store secrets in Google Secret Manager
+- ✅ Regularly rotate API keys and service accounts
+- ✅ Use IAM roles with least privilege principle
+
+### If credentials are compromised:
+1. Immediately revoke the exposed credentials in Google Cloud Console
+2. Create new service accounts and API keys
+3. Update your deployment with new credentials
+4. Consider using `git filter-branch` to remove sensitive data from git history
 
 ## 🧪 Testing
 
