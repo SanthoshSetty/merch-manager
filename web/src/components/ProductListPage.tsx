@@ -14,15 +14,12 @@ import {
   Pagination,
   TextField,
   InputAdornment,
-  IconButton,
 } from '@mui/material';
 import {
   Search as SearchIcon,
-  Edit as EditIcon,
   Inventory as InventoryIcon,
   AttachMoney as PriceIcon,
   Image as ImageIcon,
-  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../config/api';
@@ -105,10 +102,6 @@ export default function ProductListPage() {
     }
   };
 
-  const handleProductEdit = (productId: string) => {
-    navigate(`/product/${encodeURIComponent(productId)}`);
-  };
-
   const filteredProducts = products.filter(product =>
     product.attributes.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.attributes.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,32 +155,10 @@ export default function ProductListPage() {
           <Stack direction="row" spacing={2}>
             <Button
               variant="contained"
-              onClick={() => navigate('/competitive-analysis')}
-              sx={{ bgcolor: 'secondary.main', '&:hover': { bgcolor: 'secondary.dark' } }}
-            >
-              Competitive Analysis
-            </Button>
-            <Button
-              variant="contained"
               onClick={() => navigate('/experimental-competitive-analysis')}
               sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
             >
               Advanced Competitive Analysis
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => navigate('/super-intelligent-analysis')}
-              sx={{ bgcolor: '#8B5CF6', '&:hover': { bgcolor: '#7C3AED' } }}
-            >
-              🧠 Super-Intelligent Analysis
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={() => loadProducts()}
-              disabled={loading}
-            >
-              Refresh
             </Button>
           </Stack>
         </Stack>
@@ -215,11 +186,7 @@ export default function ProductListPage() {
 
       {/* Error Alert */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} action={
-          <IconButton color="inherit" size="small" onClick={() => loadProducts()}>
-            <RefreshIcon />
-          </IconButton>
-        }>
+        <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
@@ -237,9 +204,6 @@ export default function ProductListPage() {
               'Your product catalog is empty. Add products to your Google Merchant Center to see them here.'
             }
           </Typography>
-          <Button variant="contained" onClick={() => loadProducts()}>
-            Retry Loading
-          </Button>
         </Box>
       ) : (
         <>
@@ -335,18 +299,6 @@ export default function ProductListPage() {
                           ID: {product.offerId}
                         </Typography>
                       </Stack>
-                    </Box>
-
-                    {/* Actions */}
-                    <Box sx={{ flexShrink: 0, alignSelf: 'flex-start' }}>
-                      <Button
-                        variant="contained"
-                        startIcon={<EditIcon />}
-                        onClick={() => handleProductEdit(product.name)}
-                        sx={{ minWidth: 120 }}
-                      >
-                        Edit
-                      </Button>
                     </Box>
                   </Stack>
                 </CardContent>

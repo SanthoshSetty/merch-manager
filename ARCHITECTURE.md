@@ -149,7 +149,7 @@ Merch Manager is an AI-powered Google Merchant Center enhancement platform that 
 
 ### 🚀 **Immediate Roadmap (Next 3 Months)**
 - **Complete GMC Integration**: Finalize Google Merchant Center API integration with full CRUD operations
-- **Fix Super-Intelligent Analysis**: Resolve the 90% progress issue and optimize Python script execution
+- **Enhanced Competitive Analysis**: Improve the Advanced Competitive Analysis with more data sources and insights
 - **SEO Performance Tracking**: Implement ranking change monitoring and performance analytics
 - **Bulk Enhancement Pipeline**: Enable batch processing of large product catalogs
 - **Mobile Responsiveness**: Optimize interface for mobile and tablet devices
@@ -390,14 +390,6 @@ graph TB
 - Performance forecasting
 - A/B testing insights
 
-#### Super Intelligent Analysis
-- **Endpoint**: `/api/super-intelligent`
-- **Technology**: Python ML Scripts
-- Deep market analysis
-- AI-powered insights
-- Predictive analytics
-- Multi-factor analysis
-
 #### AI Content Generator
 - **Endpoint**: `/api/ai-content`
 - **Technology**: Python + AI APIs
@@ -456,7 +448,6 @@ graph TB
 ├── seo-optimization/        # SEO/AEO content optimization
 ├── competitive-pricing/     # Google Shopping competitive analysis
 ├── experimental-competitive/ # Advanced market intelligence  
-├── super-intelligent/       # AI-powered deep analysis
 ├── ai-content/             # AI content generation & enhancement
 ├── products/               # Product management with GMC integration
 ├── reviews/                # Review management and optimization

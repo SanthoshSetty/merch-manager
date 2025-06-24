@@ -9,7 +9,6 @@ import { ReviewsClient } from './modules/reviews/ReviewsClient';
 import { MerchantAuth } from './auth/MerchantAuth';
 import competitivePricingRouter from './routes/competitive-pricing';
 import experimentalCompetitiveRouter from './routes/experimental-competitive-analysis';
-import superIntelligentAnalysisRouter from './routes/super-intelligent-analysis';
 import aiContentRouter from './routes/ai-content';
 
 dotenv.config();
@@ -171,15 +170,6 @@ console.log('🧪 Mounting experimental competitive router...');
 app.use('/api/experimental-competitive', experimentalCompetitiveRouter);
 console.log('🧪 Experimental competitive router mounted at /api/experimental-competitive');
 
-// Temporary test route for super-intelligent
-app.get('/api/super-intelligent/test', (req, res) => {
-  res.json({ success: true, message: 'Super-intelligent test route works!' });
-});
-console.log('🧪 Added test super-intelligent route');
-
-console.log('🚀 Mounting super-intelligent analysis router...');
-app.use('/api/super-intelligent', superIntelligentAnalysisRouter);
-console.log('🚀 Super-intelligent analysis router mounted at /api/super-intelligent');
 app.use('/api/ai-content', aiContentRouter);
 console.log('✅ All routes mounted successfully');
 
