@@ -285,19 +285,39 @@ export default function ProductListPage() {
                         )}
                       </Stack>
 
-                      <Stack direction="row" spacing={3} alignItems="center">
-                        {product.attributes.price && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <PriceIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                            <Typography variant="h6" color="success.main">
-                              {product.attributes.price.value} {product.attributes.price.currency}
-                            </Typography>
-                          </Box>
-                        )}
-                        
-                        <Typography variant="body2" color="text.secondary">
-                          ID: {product.offerId}
-                        </Typography>
+                      <Stack direction="row" spacing={3} alignItems="center" justifyContent="space-between">
+                        <Stack direction="row" spacing={3} alignItems="center">
+                          {product.attributes.price && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <PriceIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                              <Typography variant="h6" color="success.main">
+                                {product.attributes.price.value} {product.attributes.price.currency}
+                              </Typography>
+                            </Box>
+                          )}
+                          
+                          <Typography variant="body2" color="text.secondary">
+                            ID: {product.offerId}
+                          </Typography>
+                        </Stack>
+
+                        {/* Action Buttons */}
+                        <Stack direction="row" spacing={1}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => navigate(`/product/${encodeURIComponent(product.name)}`)}
+                          >
+                            View Details
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => navigate(`/product/${encodeURIComponent(product.name)}`)}
+                          >
+                            Edit
+                          </Button>
+                        </Stack>
                       </Stack>
                     </Box>
                   </Stack>
