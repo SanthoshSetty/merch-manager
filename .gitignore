@@ -35,6 +35,7 @@ debug-oauth-*.sh
 quick-oauth-*.sh
 fix-oauth-*.sh
 update-*-oauth-*.sh
+update-oauth-credentials.sh
 *.html
 
 # Deployment and setup scripts (development only)
