@@ -16,7 +16,6 @@ RUN npm ci
 
 # Copy source code
 COPY src/ ./src/
-COPY credentials/ ./credentials/
 
 # Build the application
 RUN npm run build
@@ -38,7 +37,8 @@ RUN npm ci --only=production
 # Copy built application
 COPY --from=base /app/dist ./dist
 COPY --from=base /app/src/scripts ./src/scripts
-COPY --from=base /app/credentials ./credentials
+
+# Note: Credentials are handled via Cloud Run service account, not files
 
 # Make sure scripts are executable
 RUN chmod +x src/scripts/*.py

@@ -14,6 +14,34 @@ export const apiClient = axios.create({
   },
 });
 
+// Add request interceptor to include auth token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('merch_auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle auth errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid, clear storage and reload
+      localStorage.removeItem('merch_auth_token');
+      localStorage.removeItem('merch_user');
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Export configuration for use in components
 export const config = {
   // API Configuration

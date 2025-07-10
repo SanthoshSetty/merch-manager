@@ -15,5 +15,10 @@ debug-*.js
 *.log
 dist/
 .github/
-# Ensure credentials are included
-!credentials/
+# Exclude credentials and sensitive files
+credentials/
+*.json
+!package*.json
+!tsconfig*.json
+*.key
+*.pem

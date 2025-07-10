@@ -14,8 +14,9 @@ spec:
         run.googleapis.com/execution-environment: gen2
     spec:
       containerConcurrency: 100
+      serviceAccountName: YOUR_SERVICE_ACCOUNT@YOUR_PROJECT_ID.iam.gserviceaccount.com
       containers:
-      - image: us-central1-docker.pkg.dev/neon-vigil-395120/merch-manager/backend:20250624-001134
+      - image: REGION-docker.pkg.dev/YOUR_PROJECT_ID/merch-manager/backend:latest
         ports:
         - containerPort: 8080
         env:
@@ -29,15 +30,14 @@ spec:
         
         # Google Cloud Configuration
         - name: GOOGLE_CLOUD_PROJECT_ID
-          value: "neon-vigil-395120"
+          value: "YOUR_PROJECT_ID"
         - name: GOOGLE_CLOUD_REGION
           value: "us-central1"
-        - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: "/secrets/google-credentials.json"
+        # Note: GOOGLE_APPLICATION_CREDENTIALS removed to use Cloud Run service account
         
         # Google Merchant Center Configuration
         - name: GOOGLE_MERCHANT_ID
-          value: "5591219286"
+          value: "YOUR_MERCHANT_ID"
         - name: MERCHANT_API_BASE_URL
           value: "https://merchantapi.googleapis.com"
         - name: MERCHANT_API_VERSION
@@ -56,13 +56,41 @@ spec:
         - name: GEMINI_TIMEOUT
           value: "30000"
         
+        # CORS Configuration
+        - name: CORS_ORIGIN
+          value: "https://YOUR_FRONTEND_URL"
+        - name: CORS_CREDENTIALS
+          value: "true"
+        
+        # OAuth Configuration
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: google-oauth-client-id
+              key: "latest"
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: google-oauth-client-secret
+              key: "latest"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: "latest"
+        - name: GOOGLE_REDIRECT_URI
+          value: "https://YOUR_BACKEND_URL/auth/google/callback"
+        - name: FRONTEND_URL
+          value: "https://YOUR_FRONTEND_URL"
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: session-secret
+              key: "latest"
+        
         # Server Configuration
         - name: HOST
           value: "0.0.0.0"
-        - name: CORS_ORIGIN
-          value: "https://merch-manager-frontend-hbo66mhwnq-uc.a.run.app"
-        - name: CORS_CREDENTIALS
-          value: "true"
         - name: REQUEST_TIMEOUT
           value: "120000"
         - name: REQUEST_SIZE_LIMIT
@@ -132,10 +160,7 @@ spec:
         - name: COMPETITIVE_PRICING_SCRIPT_PATH
           value: "./src/scripts/competitive_pricing_analyzer.py"
         
-        volumeMounts:
-        - name: google-credentials
-          mountPath: /secrets
-          readOnly: true
+        # Note: Volume mounts and secrets removed - using Cloud Run service account authentication
         resources:
           limits:
             cpu: "2"
@@ -143,10 +168,4 @@ spec:
           requests:
             cpu: "1"
             memory: "1Gi"
-      volumes:
-      - name: google-credentials
-        secret:
-          secretName: google-credentials
-          items:
-          - key: latest
-            path: google-credentials.json
+      # Note: Volumes removed - using Cloud Run service account authentication

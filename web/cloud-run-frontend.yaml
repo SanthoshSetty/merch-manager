@@ -13,13 +13,13 @@ spec:
     spec:
       containerConcurrency: 100
       containers:
-      - image: us-central1-docker.pkg.dev/neon-vigil-395120/merch-manager/frontend:latest
+      - image: REGION-docker.pkg.dev/YOUR_PROJECT_ID/merch-manager/frontend:latest
         ports:
         - containerPort: 8080
         env:
         # Backend API Configuration
         - name: VITE_API_BASE_URL
-          value: "https://merch-manager-backend-361151780407.us-central1.run.app"
+          value: "https://YOUR_BACKEND_URL"
         - name: VITE_API_TIMEOUT
           value: "30000"
         - name: VITE_REQUEST_TIMEOUT

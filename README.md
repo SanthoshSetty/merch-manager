@@ -6,18 +6,287 @@ A comprehensive web application for managing Google Merchant Center products wit
 
 ### Core Functionality
 - **Product Management**: Complete CRUD operations for Google Merchant Center products
+- **Google OAuth Authentication**: Secure login with Google accounts
 - **Real-time Sync**: Direct integration with Google Merchant Center API
-- **Bulk Operations**: Import, export, and bulk edit products
+- **Bulk Operations**: Import, export, and bulk edit products via CSV
 - **Advanced Search**: Filter and search products by multiple criteria
 
 ### AI-Powered Features
 - **AI Content Generation**: Generate product titles, descriptions, and custom fields using Google Gemini
 - **Grounded Sources**: AI-generated content backed by real web sources
-- **Competitive Pricing**: AI-powered competitive price analysis
+- **Competitive Pricing**: AI-powered competitive price analysis with market research
 - **Smart Categorization**: Automatic product categorization suggestions
 
 ### Advanced Features
 - **Dynamic Custom Fields**: Create and manage custom product attributes
+- **Review Management**: Customer review analysis and management
+- **Field Update Analytics**: Track and analyze product field changes
+- **Sync History**: Monitor synchronization status and history
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Backend       │    │  Google APIs    │
+│   (React)       │◄──►│   (Express.js)  │◄──►│                 │
+│   Cloud Run     │    │   Cloud Run     │    │  - OAuth 2.0    │
+└─────────────────┘    └─────────────────┘    │  - Merchant API │
+                                             │  - Gemini AI    │
+                                             └─────────────────┘
+```
+
+### Backend Services
+- **Authentication**: OAuth 2.0 with Google, JWT token management
+- **Product API**: Full CRUD operations for products
+- **AI Services**: Content generation and competitive analysis
+- **File Management**: CSV import/export and bulk operations
+- **Analytics**: Market research and pricing analysis
+
+### Frontend Application
+- **React 18**: Modern React with hooks and context
+- **Material-UI**: Professional, responsive design
+- **TypeScript**: Type-safe component development
+- **Authentication**: OAuth integration with session management
+
+## 🛠️ Technology Stack
+
+### Backend
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js with comprehensive middleware
+- **Authentication**: Passport.js with Google OAuth 2.0, JWT tokens
+- **Database**: Google Merchant Center API integration
+- **AI/ML**: Google Gemini AI API for content generation
+- **Deployment**: Google Cloud Run with auto-scaling
+- **Security**: CORS, rate limiting, secure headers
+
+### Frontend
+- **Framework**: React 18 with TypeScript
+- **UI Library**: Material-UI (MUI) v5
+- **Build Tool**: Vite for fast development and optimized builds
+- **State Management**: React Context API with custom hooks
+- **HTTP Client**: Axios with request/response interceptors
+- **Deployment**: Google Cloud Run with Nginx
+
+### Infrastructure
+- **Cloud Platform**: Google Cloud Platform
+- **Container Registry**: Google Cloud Artifact Registry
+- **Secrets Management**: Google Secret Manager
+- **Monitoring**: Google Cloud Logging and monitoring
+- **SSL/TLS**: Automatic HTTPS with Google Cloud Run
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ and npm
+- Google Cloud CLI (`gcloud`) configured
+- Docker (for containerization)
+- Google Cloud Project with required APIs enabled
+
+### Local Development
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd merch-manager
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   # Backend
+   npm install
+   
+   # Frontend
+   cd web && npm install
+   ```
+
+3. **Set up environment variables**:
+   ```bash
+   # Backend - copy and edit .env file
+   cp .env.example .env
+   
+   # Frontend - copy and edit .env file
+   cd web && cp .env.example .env
+   ```
+
+4. **Start development servers**:
+   ```bash
+   # Backend (port 3001)
+   npm run dev
+   
+   # Frontend (port 5173)
+   cd web && npm run dev
+   ```
+
+### Production Deployment
+
+The application is designed for Google Cloud Run deployment:
+
+1. **Configure Google Cloud**:
+   ```bash
+   gcloud config set project YOUR_PROJECT_ID
+   gcloud auth login
+   ```
+
+2. **Deploy backend**:
+   ```bash
+   npm run deploy:backend
+   ```
+
+3. **Deploy frontend**:
+   ```bash
+   npm run deploy:frontend
+   ```
+
+## 🔧 Configuration
+
+### Required Google Cloud APIs
+- Google Merchant API
+- Google OAuth 2.0 API
+- Google Gemini AI API
+- Cloud Run API
+- Cloud Build API
+- Secret Manager API
+
+### Environment Variables
+
+#### Backend
+- `GOOGLE_CLOUD_PROJECT_ID`: Your Google Cloud project ID
+- `GOOGLE_MERCHANT_ID`: Google Merchant Center ID
+- `GEMINI_API_KEY`: Google Gemini AI API key (stored in Secret Manager)
+- `GOOGLE_OAUTH_CLIENT_ID`: Google OAuth client ID (stored in Secret Manager)
+- `GOOGLE_OAUTH_CLIENT_SECRET`: Google OAuth client secret (stored in Secret Manager)
+- `JWT_SECRET`: Secret for JWT token signing (stored in Secret Manager)
+- `SESSION_SECRET`: Secret for session management (stored in Secret Manager)
+- `FRONTEND_URL`: Frontend application URL
+
+#### Frontend
+- `VITE_API_BASE_URL`: Backend API base URL
+- `VITE_APP_NAME`: Application name
+- `VITE_API_TIMEOUT`: API request timeout
+
+### Google OAuth Setup
+
+1. **Create OAuth 2.0 credentials**:
+   - Go to Google Cloud Console → APIs & Services → Credentials
+   - Create OAuth 2.0 client ID for web application
+   - Configure authorized redirect URIs:
+     - `https://your-backend-url/auth/google/callback`
+
+2. **Set up service account**:
+   - Create service account with Merchant Center API permissions
+   - Grant necessary roles for Cloud Run deployment
+
+## 📊 API Documentation
+
+### Authentication Endpoints
+- `GET /auth/google` - Get Google OAuth authentication URL
+- `GET /auth/google/callback` - Handle OAuth callback from Google
+- `POST /auth/verify` - Verify JWT token validity
+- `GET /auth/profile` - Get authenticated user profile
+- `POST /auth/logout` - Logout user and invalidate session
+
+### Product Management
+- `GET /api/products` - List all products with pagination
+- `GET /api/products/:id` - Get detailed product information
+- `POST /api/products` - Create new product
+- `PUT /api/products/:id` - Update existing product
+- `DELETE /api/products/:id` - Delete product
+
+### AI Services
+- `POST /api/ai-content` - Generate AI-powered content for products
+- `POST /api/competitive-pricing` - Analyze competitive pricing
+
+### File Operations
+- `POST /api/csv/import` - Import products from CSV file
+- `GET /api/csv/export` - Export products to CSV format
+
+### Health and Monitoring
+- `GET /api/health` - Application health check with OAuth status
+
+## 🔒 Security Features
+
+- **OAuth 2.0**: Secure authentication with Google accounts
+- **JWT Tokens**: Stateless authentication for API access
+- **CORS Protection**: Configured for production domains
+- **Rate Limiting**: API rate limiting to prevent abuse
+- **Input Validation**: Comprehensive request validation
+- **HTTPS Only**: All communications encrypted in transit
+- **Secret Management**: Sensitive data stored in Google Secret Manager
+- **Session Security**: Secure session management and token handling
+
+## 🧪 Testing
+
+### Development Testing
+```bash
+# Backend tests
+npm test
+
+# Frontend tests
+cd web && npm test
+```
+
+### OAuth Flow Testing
+- Comprehensive OAuth debugging tools included
+- Health check endpoints for monitoring
+- Real-time logging for troubleshooting
+
+## 📈 Performance Optimizations
+
+- **Auto-scaling**: Cloud Run automatically scales based on demand
+- **CDN**: Static assets optimized for fast delivery
+- **Compression**: Gzip compression for all responses
+- **Caching**: Appropriate cache headers for static resources
+- **Build Optimization**: Production builds optimized for size and performance
+- **Lazy Loading**: Components loaded on-demand
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -am 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Submit a pull request
+
+### Development Guidelines
+- Follow TypeScript best practices
+- Write comprehensive tests for new features
+- Update documentation for API changes
+- Ensure all secrets are properly managed
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support & Documentation
+
+For support and questions:
+- Create an issue in the GitHub repository
+- Check the comprehensive documentation files
+- Review deployment guides and troubleshooting docs
+
+### Available Documentation
+- `DEPLOYMENT_GUIDE.md` - Comprehensive deployment instructions
+- `OAUTH_SETUP.md` - OAuth configuration guide
+- `TROUBLESHOOTING.md` - Common issues and solutions
+
+## 🌟 Roadmap
+
+- [ ] Multi-tenant support for multiple merchants
+- [ ] Advanced analytics dashboard with charts
+- [ ] Mobile application for on-the-go management
+- [ ] Third-party marketplace integrations (Amazon, eBay)
+- [ ] Advanced AI features for market prediction
+- [ ] Real-time notifications and alerts
+- [ ] Advanced user roles and permissions
+- [ ] Automated testing and CI/CD pipeline
+- [ ] Performance monitoring and optimization
+- [ ] Advanced search and filtering capabilities
+
+---
+
+**Built with ❤️ using modern web technologies and Google Cloud Platform**
+
+*This application demonstrates enterprise-grade architecture, security best practices, and modern web development techniques suitable for production e-commerce environments.*
 - **Multi-country Support**: Manage products for different markets
 - **Review Integration**: Access and manage product reviews
 - **Analytics Dashboard**: Track product performance and insights

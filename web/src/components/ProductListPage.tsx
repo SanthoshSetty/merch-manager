@@ -23,6 +23,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../config/api';
+import CSVManager from './CSVManager';
+import type { CSVField } from '../utils/csvUtils';
 
 interface Product {
   name: string;
@@ -49,6 +51,30 @@ export default function ProductListPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+
+  // CSV field definitions for product export/import
+  const csvFields: CSVField[] = [
+    { key: 'title', label: 'Title', type: 'text', required: true },
+    { key: 'description', label: 'Description', type: 'text' },
+    { key: 'price', label: 'Price', type: 'number' },
+    { key: 'currency', label: 'Currency', type: 'text' },
+    { key: 'availability', label: 'Availability', type: 'text' },
+    { key: 'condition', label: 'Condition', type: 'text' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'imageLink', label: 'Image URL', type: 'url' },
+    { key: 'gtin', label: 'GTIN', type: 'text' },
+    { key: 'mpn', label: 'MPN', type: 'text' },
+  ];
+
+  const handleCSVImport = async (data: Record<string, any>[]) => {
+    console.log('Importing CSV data:', data);
+    // Refresh products after import
+    await loadProducts();
+  };
+
+  const handleCSVExport = () => {
+    console.log('CSV export completed');
+  };
 
   const loadProducts = async (pageToken?: string) => {
     setLoading(true);
@@ -153,6 +179,25 @@ export default function ProductListPage() {
             Product Catalog
           </Typography>
           <Stack direction="row" spacing={2}>
+            <CSVManager
+              fields={csvFields}
+              data={products.map(product => ({
+                title: product.attributes?.title || '',
+                description: product.attributes?.description || '',
+                price: product.attributes?.price?.value || '',
+                currency: product.attributes?.price?.currency || '',
+                availability: product.attributes?.availability || '',
+                condition: product.attributes?.condition || '',
+                brand: product.attributes?.brand || '',
+                imageLink: product.attributes?.imageLink || '',
+                gtin: product.attributes?.gtin || '',
+                mpn: product.attributes?.mpn || '',
+              }))}
+              onImportComplete={handleCSVImport}
+              onExportComplete={handleCSVExport}
+              exportFilename="products_export.csv"
+              templateFilename="products_template.csv"
+            />
             <Button
               variant="contained"
               onClick={() => navigate('/experimental-competitive-analysis')}

@@ -7,9 +7,13 @@ import dotenv from 'dotenv';
 import { ProductsClient } from './modules/products/ProductsClient';
 import { ReviewsClient } from './modules/reviews/ReviewsClient';
 import { MerchantAuth } from './auth/MerchantAuth';
+import { authenticateToken, optionalAuth, AuthenticatedRequest, getOAuthStatus } from './auth/oauth';
+import authRouter from './routes/auth';
 import competitivePricingRouter from './routes/competitive-pricing';
 import experimentalCompetitiveRouter from './routes/experimental-competitive-analysis';
 import aiContentRouter from './routes/ai-content';
+import csvRouter from './routes/csv';
+import reviewsRouter from './routes/reviews';
 
 dotenv.config();
 
@@ -165,12 +169,22 @@ app.get('/', (req, res) => {
 
 // Mount routes
 console.log('🔧 Mounting routes...');
-app.use('/api/competitive-pricing', competitivePricingRouter);
+
+// Auth routes (no authentication required)
+app.use('/auth', authRouter);
+console.log('🔐 Auth router mounted at /auth');
+
+// Protected API routes (authentication required)
+app.use('/api/competitive-pricing', authenticateToken as any, competitivePricingRouter);
 console.log('🧪 Mounting experimental competitive router...');
-app.use('/api/experimental-competitive', experimentalCompetitiveRouter);
+app.use('/api/experimental-competitive', authenticateToken as any, experimentalCompetitiveRouter);
 console.log('🧪 Experimental competitive router mounted at /api/experimental-competitive');
 
-app.use('/api/ai-content', aiContentRouter);
+app.use('/api/ai-content', authenticateToken as any, aiContentRouter);
+app.use('/api/csv', authenticateToken as any, csvRouter);
+app.use('/api/reviews', authenticateToken as any, reviewsRouter);
+console.log('📄 CSV import/export router mounted at /api/csv');
+console.log('📝 Reviews router mounted at /api/reviews');
 console.log('✅ All routes mounted successfully');
 
 // Initialize clients
@@ -182,7 +196,7 @@ const reviewsClient = new ReviewsClient(authManager);
 const DEMO_MODE = process.env.DEMO_MODE === 'true' || !process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 // Field update endpoints
-app.patch('/api/products/:productId/fields', async (req, res) => {
+app.patch('/api/products/:productId/fields', authenticateToken as any, async (req: any, res) => {
   try {
     const { productId } = req.params;
     const { updates, updateMask } = req.body;
@@ -274,7 +288,7 @@ app.patch('/api/products/:productId/fields', async (req, res) => {
 });
 
 // Bulk field updates
-app.patch('/api/products/bulk-fields', async (req, res) => {
+app.patch('/api/products/bulk-fields', authenticateToken as any, async (req: any, res) => {
   try {
     const { operations } = req.body;
     
@@ -299,7 +313,7 @@ app.patch('/api/products/bulk-fields', async (req, res) => {
 });
 
 // Get product endpoint
-app.get('/api/products/:productId', async (req, res) => {
+app.get('/api/products/:productId', authenticateToken as any, async (req: any, res) => {
   try {
     const { productId } = req.params;
     const result = await productsClient.getProduct(productId);
@@ -315,7 +329,7 @@ app.get('/api/products/:productId', async (req, res) => {
 });
 
 // List products endpoint
-app.get('/api/products', async (req, res) => {
+app.get('/api/products', authenticateToken as any, async (req: any, res) => {
   try {
     const pageSize = parseInt(req.query.pageSize as string) || 25;
     const pageToken = req.query.pageToken as string;
@@ -369,7 +383,7 @@ app.get('/api/products', async (req, res) => {
 });
 
 // Create product input endpoint (for new products)
-app.post('/api/products', async (req, res) => {
+app.post('/api/products', authenticateToken as any, async (req: any, res) => {
   try {
     const { productData } = req.body;
     
@@ -394,7 +408,7 @@ app.post('/api/products', async (req, res) => {
 });
 
 // Delete product input endpoint
-app.delete('/api/products/inputs/:productInputId', async (req, res) => {
+app.delete('/api/products/inputs/:productInputId', authenticateToken as any, async (req: any, res) => {
   try {
     const { productInputId } = req.params;
     
@@ -420,7 +434,7 @@ app.delete('/api/products/inputs/:productInputId', async (req, res) => {
 // ============================================
 
 // List product reviews
-app.get('/api/reviews', async (req: Request, res: Response) => {
+app.get('/api/reviews', authenticateToken as any, async (req: any, res: Response) => {
   try {
     const { pageSize = 25, pageToken, productId } = req.query;
     
@@ -484,7 +498,7 @@ app.get('/api/reviews', async (req: Request, res: Response) => {
 });
 
 // Get specific product review
-app.get('/api/reviews/:productReviewId', async (req: Request, res: Response) => {
+app.get('/api/reviews/:productReviewId', authenticateToken as any, async (req: any, res: Response) => {
   try {
     const { productReviewId } = req.params;
     
@@ -505,7 +519,7 @@ app.get('/api/reviews/:productReviewId', async (req: Request, res: Response) => 
 });
 
 // Create product review
-app.post('/api/reviews', async (req: Request, res: Response) => {
+app.post('/api/reviews', authenticateToken as any, async (req: any, res: Response) => {
   try {
     const { productId, reviewData } = req.body;
     
@@ -554,7 +568,7 @@ app.post('/api/reviews', async (req: Request, res: Response) => {
 });
 
 // Delete product review
-app.delete('/api/reviews/:productReviewId', async (req: Request, res: Response) => {
+app.delete('/api/reviews/:productReviewId', authenticateToken as any, async (req: any, res: Response) => {
   try {
     const { productReviewId } = req.params;
     
@@ -590,6 +604,10 @@ app.get('/api/health', async (req, res) => {
       authMethod: process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'service-account-key' : 'cloud-run-service-account'
     };
 
+    // Add OAuth status
+    const oauthStatus = getOAuthStatus();
+    health.oauth = oauthStatus;
+
     // Test authentication
     try {
       console.log('Testing authentication...');
@@ -623,7 +641,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Check account access
-app.get('/api/account', async (req, res) => {
+app.get('/api/account', authenticateToken as any, async (req: any, res) => {
   try {
     const result = await productsClient.getAccount();
     res.json({ success: true, data: result });

@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import { ReviewsClient } from '../modules/reviews/ReviewsClient';
 import { MerchantAuth } from '../auth/MerchantAuth';
+import { AuthenticatedRequest } from '../auth/oauth';
 
 const router = Router();
 const authManager = new MerchantAuth();
 const reviewsClient = new ReviewsClient(authManager);
 
 // Create new product review
-router.post('/', (req, res) => {
+router.post('/', (req: any, res) => {
   (async () => {
     try {
       const { productId, reviewData } = req.body;

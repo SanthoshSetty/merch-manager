@@ -16,13 +16,37 @@ credentials/
 *.json
 !package*.json
 !tsconfig*.json
+!cloud-run-*.yaml
 *.key
 *.pem
+service-account-key.json
+
+# Google Cloud and OAuth secrets
+google-oauth-client-secret
+google-oauth-client-id
+jwt-secret
+session-secret
+
+# Test and development files (not for production)
+test-oauth.html
+test-oauth-*.sh
+debug-oauth-*.sh
+*-oauth-*.sh
+quick-oauth-*.sh
+fix-oauth-*.sh
+update-*-oauth-*.sh
+*.html
+
+# Deployment and setup scripts (development only)
+deploy-all.sh
+fix-*.sh
+setup-*.sh
 
 # Build outputs
 dist/
 build/
 *.tsbuildinfo
+web/dist/
 
 # Logs
 logs
@@ -56,3 +80,11 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Python virtual environments (if any)
+.venv/
+venv/
+__pycache__/
+
+# Local development and testing files
+frontend-auth-example.js

@@ -15,7 +15,7 @@ COPY . .
 
 # Set comprehensive environment variables for build
 # Backend API Configuration
-ENV VITE_API_BASE_URL=https://merch-manager-backend-hbo66mhwnq-uc.a.run.app
+ENV VITE_API_BASE_URL=https://merch-manager-backend-361151780407.us-central1.run.app
 ENV VITE_API_TIMEOUT=30000
 ENV VITE_REQUEST_TIMEOUT=120000
 
@@ -79,8 +79,12 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
+# Copy startup script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
 # Expose port 8080
 EXPOSE 8080
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start with our custom script
+CMD ["/start.sh"]
